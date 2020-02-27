@@ -4,7 +4,7 @@ import glob
 import os
 import sys
 try:
-    sys.path.append(glob.glob('../CARLA_0.9.7.4/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../CARLA_Simulator/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -27,10 +27,10 @@ def spawn_surrounding_vehicles(world, blueprint_library):
     bp_lib.extend(blueprint_library.filter('vehicle.tesla.*'))
 
     # Set vehicles spawn location
-    transform_curr_front = carla.Transform(carla.Location(x=70, y=7.8, z=0.1))
+    transform_curr_front = carla.Transform(carla.Location(x=65, y=7.8, z=0.1))
     transform_curr_back = carla.Transform(carla.Location(x=30, y=7.3, z=0.1))
-    transform_side_front = carla.Transform(carla.Location(x=80, y=3.8, z=0.1))
-    transform_side_back = carla.Transform(carla.Location(x=40, y=3.5, z=0.1))
+    transform_side_front = carla.Transform(carla.Location(x=90, y=3.8, z=0.1))
+    transform_side_back = carla.Transform(carla.Location(x=30, y=3.5, z=0.1))
     transform_list = [transform_curr_front, transform_curr_back, transform_side_front, transform_side_back]
 
     for vehicle_i in range(len(transform_list)):

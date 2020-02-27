@@ -16,16 +16,20 @@ Ubuntu 18.04
 
 1. Make sure `numpy` and `pygame` are correctly installed
 
-2. Put <u>Carla Simulator</u> folder and <u>this repository</u> folder in the same folder.
+2. Put `Carla_Simulator` folder and <u>this repository</u> folder in the same folder.
 
-3. Run CARLA in Low Graphic Quality
+3. cd to Carla_Simulator folder
 
-   cd to Carla Simulator folder
+   run CARLA in Low Graphic Quality 
 
-   `./CarlaUE4.sh -quality-level=Lo`
+   `  ./CarlaUE4.sh -quality-level=Lo`
 
-4. Start the scenario
+   or off-screen mode
 
-   cd to this repository folder
+   `DISPLAY= ./CarlaUE4.sh -opengl`
+
+4. cd to this repository folder and start the scenario
 
    `python run.py`
+   
+   
