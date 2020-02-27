@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ProjectId" id="1YHrUXAzYM67UGx0PSLmwGf5qEW" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="" />
+      <created>1582610377324</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1582610377324</updated>
+      <workItem from="1582610384066" duration="2963000" />
+      <workItem from="1582617904422" duration="44000" />
+      <workItem from="1582619919699" duration="10980000" />
+      <workItem from="1582665224833" duration="7085000" />
+      <workItem from="1582697471623" duration="7359000" />
+      <workItem from="1582786360840" duration="328000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="537" y="259" width="1016" height="738" key="SettingsEditor" timestamp="1582619933534">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="537" y="259" width="1016" height="738" key="SettingsEditor/67.27.1853.1052@67.27.1853.1052" timestamp="1582619933534" />
+    <state x="455" y="307" key="com.intellij.ide.util.TipDialog" timestamp="1582786360845">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="455" y="307" key="com.intellij.ide.util.TipDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1582786360845" />
+    <state x="430" y="277" width="672" height="678" key="search.everywhere.popup" timestamp="1582693782584">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="430" y="277" width="672" height="678" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1582693782584" />
+  </component>
+</project>
