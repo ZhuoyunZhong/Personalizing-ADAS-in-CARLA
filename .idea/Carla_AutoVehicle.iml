@@ -6,6 +6,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/environment" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/agent" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/agents" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/environment" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/agents" isTestSource="false" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.6" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

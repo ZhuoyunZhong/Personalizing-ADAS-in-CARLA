@@ -28,7 +28,7 @@ Ubuntu 18.04
 
    `DISPLAY= ./CarlaUE4.sh -opengl`
 
-4. cd to the **environment folder** of <u>this repository</u> folder and start the scenario by
+4. cd to the **environment folder** of <u>this repository</u> and start the scenario by
 
    `python run.py`
    

@@ -2,16 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/environment/lane_detection.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/Carla_AutoVehicle.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Carla_AutoVehicle.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/joeyzhong.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/joeyzhong.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ego_vehicle.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/helper.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hud.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/load_actors.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/manual_control.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/run.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sensors.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/agents/navigation/basic_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agents/navigation/basic_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/lane_detection_sample.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/lane_detection_sample.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment/ego_vehicle.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/ego_vehicle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment/sensors.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/sensors.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,6 +28,7 @@
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -58,7 +59,7 @@
       <workItem from="1582665224833" duration="7085000" />
       <workItem from="1582697471623" duration="7359000" />
       <workItem from="1582786360840" duration="328000" />
-      <workItem from="1582812310404" duration="1810000" />
+      <workItem from="1582812310404" duration="18025000" />
     </task>
     <servers />
   </component>
@@ -66,6 +67,10 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="1392" y="334" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1582828183626">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="1392" y="334" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1582828183626" />
     <state x="537" y="259" width="1016" height="738" key="SettingsEditor" timestamp="1582619933534">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
@@ -74,9 +79,9 @@
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="455" y="299" key="com.intellij.ide.util.TipDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1582812311008" />
-    <state x="430" y="277" width="672" height="678" key="search.everywhere.popup" timestamp="1582693782584">
+    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup" timestamp="1582828786021">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="430" y="277" width="672" height="678" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1582693782584" />
+    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1582828786021" />
   </component>
 </project>

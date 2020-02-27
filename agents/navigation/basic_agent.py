@@ -17,6 +17,7 @@ from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 
+
 class BasicAgent(Agent):
     """
     BasicAgent implements a basic agent that navigates scenes to reach a given

@@ -18,7 +18,10 @@ except IndexError:
 import carla
 import pygame
 
-sys.path.append('../')
+try:
+    sys.path.append('../')
+except IndexError:
+    pass
 from agents.navigation.roaming_agent import RoamingAgent
 from agents.navigation.basic_agent import BasicAgent
 
@@ -140,6 +143,7 @@ def game_loop(args):
         if args.agent == "Roaming":
             agent = RoamingAgent(world.player)
         else:
+            pass
             agent = BasicAgent(world.player)
             # Destination Setting
             agent.set_destination((230, 39, 0))
@@ -175,7 +179,7 @@ def main():
                            help='IP of the host server (default: 127.0.0.1)')
     argparser.add_argument('-p', '--port', metavar='P', default=2000, type=int,
                            help='TCP port to listen to (default: 2000)')
-    argparser.add_argument('--res', metavar='WIDTH x HEIGHT', default='1920x1080',
+    argparser.add_argument('--res', metavar='WIDTH x HEIGHT', default='1280x720',
                            help='window resolution')
     argparser.add_argument('--filter', metavar='PATTERN', default='vehicle.tesla.*',
                            help='actor filter (default: "vehicle.tesla.*")')

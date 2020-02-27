@@ -22,6 +22,8 @@ import pygame
 import numpy as np
 import math
 
+from lane_detection import *
+
 
 # Obstacle sensor (ultrasonic)
 class ObstacleSensor(object):
@@ -34,6 +36,7 @@ class ObstacleSensor(object):
                                             attach_to=self._parent)
         self.obstacle = None
         self.distance_to_obstacle = None
+        self.close_to_obstacle = False
 
         # We need to pass the lambda a weak reference to self to avoid circular
         # reference.
@@ -47,6 +50,10 @@ class ObstacleSensor(object):
             return
         self.obstacle = event.other_actor
         self.distance_to_obstacle = event.distance
+        if self.distance_to_obstacle < 10:
+            self.close_to_obstacle = True
+        else:
+            self.close_to_obstacle = False
 
 
 # CollisionSensor
@@ -120,7 +127,7 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
-            carla.Transform(carla.Location(x=0.3, z=1.5)),
+            carla.Transform(carla.Location(x=0.5, z=1.5)),
             carla.Transform(carla.Location(x=0.0, z=2.0)),
             carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
         self.transform_index = 0
@@ -147,6 +154,16 @@ class CameraManager(object):
                 bp.set_attribute('range', '50')
             item.append(bp)
         self.index = None
+        # For the main rgb camera
+        self.process_rate = 10
+        self.counter = 10
+        self.lanes = None
+        self.left_lane = Lane()
+        self.right_lane = Lane()
+        self.curvature = None
+        self.offset = None
+        self.inverse_mat = None
+        self.lane_image = None
 
     def set_sensor(self, index, notify=True, display_camera=False):
         index = index % len(self.sensors)
@@ -164,9 +181,9 @@ class CameraManager(object):
             # circular reference.
             weak_self = weakref.ref(self)
             if display_camera:
-                self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
+                self.sensor.listen(lambda img: CameraManager._parse_image(weak_self, img))
             else:
-                self.sensor.listen(lambda image: CameraManager._process_image(weak_self, image))
+                self.sensor.listen(lambda img: CameraManager._process_image(weak_self, img))
 
         if notify:
             self.hud.notification(self.sensors[index][2])
@@ -204,7 +221,29 @@ class CameraManager(object):
             array = np.reshape(array, (image.height, image.width, 4))
             array = array[:, :, :3]
             array = array[:, :, ::-1]
+
+            '''
+            # Process received image
+            if self.counter >= self.process_rate:
+                lane_image, curvature, offset, inverse_mat = lane_detection(array, self.left_lane, self.right_lane)
+                self.curvature = curvature
+                self.offset = offset
+                self.inverse_mat = inverse_mat
+                self.lane_image = lane_image
+                self.counter = 0
+            else:
+                self.counter += 1
+
+            if self.lane_image is not None:
+                new_image = unwarp_found_region(array, self.lane_image, self.inverse_mat, self.curvature, self.offset)
+                # Display the result
+                self.surface = pygame.surfarray.make_surface(new_image.swapaxes(0, 1))
+            else:
+                self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+            '''
+            # new_image, curvature, offset = lane_detection(array, self.left_lane, self.right_lane)
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+
         else:
             points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'))
             points = np.reshape(points, (int(points.shape[0] / 3), 3))
