@@ -6,7 +6,7 @@ from pygame.locals import KMOD_CTRL
 
 class KeyboardControl(object):
     def __init__(self, world):
-        world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
+        world.hud.notification("Press 'ESC' to quit.", seconds=4.0)
 
     def parse_events(self):
         for event in pygame.event.get():

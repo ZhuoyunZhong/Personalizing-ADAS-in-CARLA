@@ -9,7 +9,7 @@ import weakref
 import collections
 
 try:
-    sys.path.append(glob.glob('../CARLA_Simulator/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../../CARLA_Simulator/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -20,12 +20,36 @@ from carla import ColorConverter as cc
 
 import pygame
 import numpy as np
-
-# ==============================================================================
-# -- CollisionSensor -----------------------------------------------------------
-# ==============================================================================
+import math
 
 
+# Obstacle sensor (ultrasonic)
+class ObstacleSensor(object):
+    def __init__(self, parent_actor, hud):
+        self._parent = parent_actor
+        world = self._parent.get_world()
+        obs_sensor_bp = world.get_blueprint_library().find('sensor.other.obstacle')
+        obs_sensor_bp.set_attribute('distance', '20')
+        self.sensor = world.try_spawn_actor(obs_sensor_bp, carla.Transform(carla.Location(x=1, z=1)),
+                                            attach_to=self._parent)
+        self.obstacle = None
+        self.distance_to_obstacle = None
+
+        # We need to pass the lambda a weak reference to self to avoid circular
+        # reference.
+        weak_self = weakref.ref(self)
+        self.sensor.listen(lambda event: ObstacleSensor._on_detect(weak_self, event))
+
+    @staticmethod
+    def _on_detect(weak_self, event):
+        self = weak_self()
+        if not self:
+            return
+        self.obstacle = event.other_actor
+        self.distance_to_obstacle = event.distance
+
+
+# CollisionSensor
 class CollisionSensor(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
@@ -51,7 +75,9 @@ class CollisionSensor(object):
         self = weak_self()
         if not self:
             return
-        actor_type = get_actor_display_name(event.other_actor)
+        name = ' '.join(event.other_actor.type_id.replace('_', '.').title().split('.')[1:])
+        truncate = 250
+        actor_type = (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
         self.hud.notification('Collision with %r' % actor_type)
         impulse = event.normal_impulse
         intensity = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
@@ -60,39 +86,7 @@ class CollisionSensor(object):
             self.history.pop(0)
 
 
-# ==============================================================================
-# -- LaneInvasionSensor --------------------------------------------------------
-# ==============================================================================
-
-
-class LaneInvasionSensor(object):
-    def __init__(self, parent_actor, hud):
-        self.sensor = None
-        self._parent = parent_actor
-        self.hud = hud
-        world = self._parent.get_world()
-        bp = world.get_blueprint_library().find('sensor.other.lane_invasion')
-        self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
-        # We need to pass the lambda a weak reference to self to avoid circular
-        # reference.
-        weak_self = weakref.ref(self)
-        self.sensor.listen(lambda event: LaneInvasionSensor._on_invasion(weak_self, event))
-
-    @staticmethod
-    def _on_invasion(weak_self, event):
-        self = weak_self()
-        if not self:
-            return
-        lane_types = set(x.type for x in event.crossed_lane_markings)
-        text = ['%r' % str(x).split()[-1] for x in lane_types]
-        self.hud.notification('Crossed line %s' % ' and '.join(text))
-
-
-# ==============================================================================
-# -- GnssSensor --------------------------------------------------------
-# ==============================================================================
-
-
+# GnssSensor
 class GnssSensor(object):
     def __init__(self, parent_actor):
         self.sensor = None
@@ -117,11 +111,7 @@ class GnssSensor(object):
         self.lon = event.longitude
 
 
-# ==============================================================================
-# -- CameraManager -------------------------------------------------------------
-# ==============================================================================
-
-
+# CameraManager
 class CameraManager(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
@@ -130,9 +120,11 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
-            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15)),
-            carla.Transform(carla.Location(x=1.6, z=1.7))]
-        self.transform_index = 1
+            carla.Transform(carla.Location(x=0.3, z=1.5)),
+            carla.Transform(carla.Location(x=0.0, z=2.0)),
+            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
+        self.transform_index = 0
+        # Define sensor list
         self.sensors = [
             ['sensor.camera.rgb', cc.Raw, 'Camera RGB'],
             ['sensor.camera.depth', cc.Raw, 'Camera Depth (Raw)'],
@@ -142,6 +134,7 @@ class CameraManager(object):
             ['sensor.camera.semantic_segmentation', cc.CityScapesPalette,
              'Camera Semantic Segmentation (CityScapes Palette)'],
             ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)']]
+        # Append blueprint in the end of each sensor
         world = self._parent.get_world()
         bp_library = world.get_blueprint_library()
         for item in self.sensors:
@@ -150,15 +143,12 @@ class CameraManager(object):
                 bp.set_attribute('image_size_x', str(hud.dim[0]))
                 bp.set_attribute('image_size_y', str(hud.dim[1]))
             elif item[0].startswith('sensor.lidar'):
+                bp.set_attribute('channels', '8')
                 bp.set_attribute('range', '50')
             item.append(bp)
         self.index = None
 
-    def toggle_camera(self):
-        self.transform_index = (self.transform_index + 1) % len(self._camera_transforms)
-        self.sensor.set_transform(self._camera_transforms[self.transform_index])
-
-    def set_sensor(self, index, notify=True):
+    def set_sensor(self, index, notify=True, display_camera=False):
         index = index % len(self.sensors)
         needs_respawn = True if self.index is None \
             else self.sensors[index][0] != self.sensors[self.index][0]
@@ -173,10 +163,18 @@ class CameraManager(object):
             # We need to pass the lambda a weak reference to self to avoid
             # circular reference.
             weak_self = weakref.ref(self)
-            self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
+            if display_camera:
+                self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
+            else:
+                self.sensor.listen(lambda image: CameraManager._process_image(weak_self, image))
+
         if notify:
             self.hud.notification(self.sensors[index][2])
         self.index = index
+
+    def toggle_camera(self):
+        self.transform_index = (self.transform_index + 1) % len(self._camera_transforms)
+        self.sensor.set_transform(self._camera_transforms[self.transform_index])
 
     def next_sensor(self):
         self.set_sensor(self.index + 1)
@@ -190,11 +188,24 @@ class CameraManager(object):
             display.blit(self.surface, (0, 0))
 
     @staticmethod
+    def _process_image(weak_self, image):
+        self = weak_self()
+        if not self:
+            return
+
+    @staticmethod
     def _parse_image(weak_self, image):
         self = weak_self()
         if not self:
             return
-        if self.sensors[self.index][0].startswith('sensor.lidar'):
+        if self.sensors[self.index][0].startswith('sensor.camera'):
+            image.convert(self.sensors[self.index][1])
+            array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
+            array = np.reshape(array, (image.height, image.width, 4))
+            array = array[:, :, :3]
+            array = array[:, :, ::-1]
+            self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+        else:
             points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'))
             points = np.reshape(points, (int(points.shape[0] / 3), 3))
             lidar_data = np.array(points[:, :2])
@@ -207,12 +218,5 @@ class CameraManager(object):
             lidar_img = np.zeros(lidar_img_size)
             lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
             self.surface = pygame.surfarray.make_surface(lidar_img)
-        else:
-            image.convert(self.sensors[self.index][1])
-            array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
-            array = np.reshape(array, (image.height, image.width, 4))
-            array = array[:, :, :3]
-            array = array[:, :, ::-1]
-            self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
         if self.recording:
             image.save_to_disk('_out/%08d' % image.frame)

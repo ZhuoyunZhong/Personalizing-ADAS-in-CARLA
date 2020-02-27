@@ -4,7 +4,7 @@ import glob
 import datetime
 
 try:
-    sys.path.append(glob.glob('../CARLA_Simulator/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../../CARLA_Simulator/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -89,6 +89,13 @@ class HUD(object):
             self._info_text += [
                 ('Speed:', c.speed, 0.0, 5.556),
                 ('Jump:', c.jump)]
+        self._info_text += [
+            '',
+            'Obstacle:',
+            '']
+        if world.obstacle_sensor.obstacle is not None:
+            self._info_text.append('%2.1f m  %s' % (world.obstacle_sensor.distance_to_obstacle,
+                                                    world.obstacle_sensor.obstacle.type_id))
         self._info_text += [
             '',
             'Collision:',

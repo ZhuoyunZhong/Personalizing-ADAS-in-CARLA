@@ -1,6 +1,6 @@
 import os
+import sys
 from multiprocessing import Pool
-
 
 # Run two files simultaneously
 def run_process(process):
