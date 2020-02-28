@@ -28,8 +28,12 @@ Ubuntu 18.04
 
    `DISPLAY= ./CarlaUE4.sh -opengl`
 
-4. cd to the **environment folder** of <u>this repository</u> and start the scenario by
+4. cd to the **environment folder** of <u>this repository</u> and start the scene by
 
    `python run.py`
+   
+   or generate only the ego vehicle by
+   
+   `python ego_vehicle.py`
    
    
