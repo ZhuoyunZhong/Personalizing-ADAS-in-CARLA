@@ -14,7 +14,7 @@ Ubuntu 18.04
 
 ### Run
 
-1. Make sure `numpy` and `pygame` are correctly installed
+1.  `numpy` and `pygame` should be correctly installed
 
 2. Put `Carla_Simulator` folder and <u>this repository</u> folder in the same folder.
 
@@ -35,5 +35,7 @@ Ubuntu 18.04
    or generate only the ego vehicle by
    
    `python ego_vehicle.py`
-   
-   
+
+
+
+...
