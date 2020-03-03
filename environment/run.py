@@ -1,6 +1,5 @@
 import os
 from multiprocessing import Pool
-from subprocess import Popen
 import argparse
 
 
