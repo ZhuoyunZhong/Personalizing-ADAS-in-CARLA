@@ -1,4 +1,4 @@
-# Lane Changing for Autonomous Vehicles in CARLA Simulator
+# Assistive-Driving-in-CARLA
 
 This project aims to design a lane changing method for autonomous vehicles with the self-driving cars simulator CARLA.
 
@@ -16,7 +16,7 @@ Ubuntu 18.04
 
 1.  `numpy` and `pygame` should be correctly installed
 
-2. Put `Carla_Simulator` folder and <u>this repository</u> folder in the same folder.
+2. Put **Carla_Simulator** folder and **this repository** folder in the same folder.
 
 3. cd to Carla_Simulator folder
 
@@ -28,13 +28,21 @@ Ubuntu 18.04
 
    `DISPLAY= ./CarlaUE4.sh -opengl`
 
-4. cd to the **environment folder** of <u>this repository</u> and start the scene by
+4. cd to the **environment folder** of **this repository** . There are options for generating vehicles.
 
-   `python run.py`
-   
-   or generate only the ego vehicle by
+   To generate only the ego vehicle
    
    `python ego_vehicle.py`
+   
+   To generate scene 1 where one vehicle is in front of the ego vehicle
+   
+   `python run.py -s 1`
+   
+   To generate scene 2 where multiple vehicles are surrounding the ego vehicle
+   
+   `python run.py -s 2` 
+   
+   
 
 
 
