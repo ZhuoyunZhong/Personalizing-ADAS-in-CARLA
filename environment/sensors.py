@@ -222,25 +222,7 @@ class CameraManager(object):
             array = array[:, :, :3]
             array = array[:, :, ::-1]
 
-            '''
-            # Process received image
-            if self.counter >= self.process_rate:
-                lane_image, curvature, offset, inverse_mat = lane_detection(array, self.left_lane, self.right_lane)
-                self.curvature = curvature
-                self.offset = offset
-                self.inverse_mat = inverse_mat
-                self.lane_image = lane_image
-                self.counter = 0
-            else:
-                self.counter += 1
-
-            if self.lane_image is not None:
-                new_image = unwarp_found_region(array, self.lane_image, self.inverse_mat, self.curvature, self.offset)
-                # Display the result
-                self.surface = pygame.surfarray.make_surface(new_image.swapaxes(0, 1))
-            else:
-                self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
-            '''
+            # Disabled for now, for not able to handle vehicle-in-front cases
             # new_image, curvature, offset = lane_detection(array, self.left_lane, self.right_lane)
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
 
