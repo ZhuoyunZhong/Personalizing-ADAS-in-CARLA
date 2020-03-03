@@ -49,6 +49,7 @@ class World(object):
         self.gnss_sensor = None
         self.rgb_camera = None
         self.depth_camera = None
+        self.segmentation_camera = None
         self.lidar = None
         self.restart()
         # Record
@@ -77,6 +78,8 @@ class World(object):
         self.rgb_camera.set_sensor(0, notify=False, display_camera=True)
         self.depth_camera = CameraManager(self.player, self.hud)
         self.depth_camera.set_sensor(3, notify=False, display_camera=False)
+        self.segmentation_camera = CameraManager(self.player, self.hud)
+        self.segmentation_camera.set_sensor(5, notify=False, display_camera=False)
         self.lidar = CameraManager(self.player, self.hud)
         self.lidar.transform_index = 1
         self.lidar.set_sensor(6, notify=False, display_camera=False)
@@ -113,6 +116,7 @@ class World(object):
             # self.player
             self.rgb_camera.sensor,
             self.depth_camera.sensor,
+            self.segmentation_camera.sensor,
             self.lidar.sensor,
             self.obstacle_sensor.sensor,
             self.collision_sensor.sensor,
