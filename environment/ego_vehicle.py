@@ -147,7 +147,7 @@ def game_loop(args):
         controller = KeyboardControl(world, start_in_autopilot=True)
 
         if args.agent == "Learning":
-            agent = LearningAgent(world.player)
+            agent = LearningAgent(world.player, target_speed=25.0)
             # Destination Setting
             agent.set_destination((230, 39, 0))
         elif args.agent == "Basic":
