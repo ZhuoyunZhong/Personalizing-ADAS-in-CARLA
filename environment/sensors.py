@@ -189,12 +189,14 @@ class CameraManager(object):
             self.hud.notification(self.sensors[index][2])
         self.index = index
 
+    # Change camera position
     def toggle_camera(self):
         self.transform_index = (self.transform_index + 1) % len(self._camera_transforms)
         self.sensor.set_transform(self._camera_transforms[self.transform_index])
 
+    # Change camera
     def next_sensor(self):
-        self.set_sensor(self.index + 1)
+        self.set_sensor(self.index + 1, display_camera=True)
 
     def toggle_recording(self):
         self.recording = not self.recording
@@ -204,6 +206,7 @@ class CameraManager(object):
         if self.surface is not None:
             display.blit(self.surface, (0, 0))
 
+    # TODO
     @staticmethod
     def _process_image(weak_self, image):
         self = weak_self()

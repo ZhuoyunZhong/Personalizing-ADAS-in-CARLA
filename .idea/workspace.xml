@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/environment/lane_detection.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Carla_AutoVehicle.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Carla_AutoVehicle.iml" afterDir="false" />
+    <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="Add Scene">
       <change beforePath="$PROJECT_DIR$/.idea/dictionaries/joeyzhong.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/joeyzhong.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/agents/navigation/basic_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agents/navigation/basic_agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/lane_detection_sample.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/lane_detection_sample.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/environment/ego_vehicle.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/ego_vehicle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment/hud.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/hud.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment/load_actors.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment/manual_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/manual_control.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/environment/sensors.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/sensors.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -60,28 +58,90 @@
       <workItem from="1582697471623" duration="7359000" />
       <workItem from="1582786360840" duration="328000" />
       <workItem from="1582812310404" duration="18025000" />
+      <workItem from="1583210100115" duration="1835000" />
+      <workItem from="1583211943674" duration="1747000" />
+      <workItem from="1584068816535" duration="9462000" />
     </task>
+    <task id="LOCAL-00001" summary="Update README">
+      <created>1583211812412</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1583211812412</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Add Scene">
+      <created>1583211843962</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1583211843962</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Add Scene">
+      <created>1583212057612</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1583212057612</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Disable lane detection">
+      <created>1583212630835</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1583212630835</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Scene file">
+      <created>1583212883613</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1583212883613</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Add segmentation camera">
+      <created>1583212902057</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1583212902057</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Update README" />
+    <MESSAGE value="Add Scene" />
+    <MESSAGE value="Disable lane detection" />
+    <MESSAGE value="Scene file" />
+    <MESSAGE value="Add segmentation camera" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add segmentation camera" />
   </component>
   <component name="WindowStateProjectService">
     <state x="1392" y="334" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1582828183626">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="1392" y="334" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1582828183626" />
+    <state x="1130" y="192" width="642" height="772" key="#run" timestamp="1583212047815">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="1130" y="192" width="642" height="772" key="#run/67.27.1853.1052@67.27.1853.1052" timestamp="1583212047815" />
+    <state x="559" y="44" width="865" height="920" key="CommitChangelistDialog2" timestamp="1583212901974">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="559" y="44" width="865" height="920" key="CommitChangelistDialog2/67.27.1853.1052@67.27.1853.1052" timestamp="1583212901974" />
     <state x="537" y="259" width="1016" height="738" key="SettingsEditor" timestamp="1582619933534">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="537" y="259" width="1016" height="738" key="SettingsEditor/67.27.1853.1052@67.27.1853.1052" timestamp="1582619933534" />
-    <state x="455" y="299" key="com.intellij.ide.util.TipDialog" timestamp="1582812311008">
+    <state x="455" y="275" key="com.intellij.ide.util.TipDialog" timestamp="1584068817361">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="455" y="299" key="com.intellij.ide.util.TipDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1582812311008" />
-    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup" timestamp="1582828786021">
+    <state x="455" y="275" key="com.intellij.ide.util.TipDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1584068817361" />
+    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup" timestamp="1584071599538">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1582828786021" />
+    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1584071599538" />
   </component>
 </project>

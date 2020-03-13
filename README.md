@@ -44,6 +44,6 @@ Ubuntu 18.04
    
    
 
+### Known Bugs
 
-
-...
+1. Ego Vehicle Rebuild won't delete the previous ego vehicle

@@ -190,13 +190,34 @@ class FadingText(object):
 
 class HelpText(object):
     def __init__(self, font, width, height):
-        lines = "?"
+        lines = ["F1           : toggle HUD",
+                 "H            : toggle help",
+                 "ESC          : quit",
+                 "P            : toggle autopilot",
+                 "C            : change weather (Shift+C reverse)",
+                 "TAB          : change sensor position",
+                 "`            : change sensor",
+                 "",
+                 "W/Up         : throttle",
+                 "S/Down       : brake",
+                 "AD/LeftRight : steer",
+                 "Q            : toggle reverse",
+                 "Space        : hand-brake",
+                 "M            : toggle manual transmission",
+                 ",/.          : gear up/down",
+                 "",
+                 "Backspace    : reborn",
+                 "R            : toggle recording images to disk",
+                 "CTRL + R     : toggle recording of simulation",
+                 "CTRL + P     : start replaying last recorded simulation",
+                 "CTRL + +     : increments the start time of the replay by 1 s",
+                 "CTRL + -     : decrements the start time of the replay by 1 s"]
         self.font = font
-        self.dim = (680, len(lines) * 22 + 12)
+        self.dim = (800, len(lines) * 22 + 12)
         self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])
         self.seconds_left = 0
         self.surface = pygame.Surface(self.dim)
-        self.surface.fill((0, 0, 0, 0))
+        self.surface.fill((100, 100, 100, 0))
         for n, line in enumerate(lines):
             text_texture = self.font.render(line, True, (255, 255, 255))
             self.surface.blit(text_texture, (22, n * 22))

@@ -47,7 +47,7 @@ class World(object):
         self.obstacle_sensor = None
         self.collision_sensor = None
         self.gnss_sensor = None
-        self.rgb_camera = None
+        self.main_rgb_camera = None
         self.depth_camera = None
         self.segmentation_camera = None
         self.lidar = None
@@ -63,6 +63,7 @@ class World(object):
         blueprint.set_attribute('color', '0, 0, 0')
         # Spawn the player.
         if self.player is not None:
+            self.player.destroy()
             self.destroy()
             spawn_point = carla.Transform(carla.Location(x=self.spawn_loc[0],
                                                          y=self.spawn_loc[1], z=self.spawn_loc[2]))
@@ -74,8 +75,8 @@ class World(object):
 
         # Set up the sensors.
         # Keep same camera config if the camera manager exists.
-        self.rgb_camera = CameraManager(self.player, self.hud)
-        self.rgb_camera.set_sensor(0, notify=False, display_camera=True)
+        self.main_rgb_camera = CameraManager(self.player, self.hud)
+        self.main_rgb_camera.set_sensor(0, notify=False, display_camera=True)
         self.depth_camera = CameraManager(self.player, self.hud)
         self.depth_camera.set_sensor(3, notify=False, display_camera=False)
         self.segmentation_camera = CameraManager(self.player, self.hud)
@@ -108,13 +109,13 @@ class World(object):
         self.hud.tick(self, clock)
 
     def render(self, display):
-        self.rgb_camera.render(display)
+        self.main_rgb_camera.render(display)
         self.hud.render(display)
 
     def destroy(self):
         actors = [
             # self.player
-            self.rgb_camera.sensor,
+            self.main_rgb_camera.sensor,
             self.depth_camera.sensor,
             self.segmentation_camera.sensor,
             self.lidar.sensor,
@@ -142,7 +143,7 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args.filter)
-        controller = KeyboardControl(world)
+        controller = KeyboardControl(world, start_in_autopilot=True)
 
         if args.agent == "Roaming":
             agent = RoamingAgent(world.player)
@@ -154,11 +155,12 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         while True:
-            if controller.parse_events():
+            clock.tick_busy_loop(60)
+            if controller.parse_events(client, world, clock):
                 return
 
             # as soon as the server is ready continue!
-            world.world.wait_for_tick(10.0)
+            world.world.wait_for_tick(5.0)
 
             world.tick(clock)
             world.render(display)
