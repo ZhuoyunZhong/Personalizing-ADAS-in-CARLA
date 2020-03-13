@@ -50,7 +50,7 @@ class ObstacleSensor(object):
             return
         self.obstacle = event.other_actor
         self.distance_to_obstacle = event.distance
-        if self.distance_to_obstacle < 10:
+        if self.distance_to_obstacle < 20:
             self.close_to_obstacle = True
         else:
             self.close_to_obstacle = False
