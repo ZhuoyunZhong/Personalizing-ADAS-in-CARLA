@@ -114,7 +114,7 @@ class World(object):
 
     def destroy(self):
         actors = [
-            # self.player
+            self.player,
             self.main_rgb_camera.sensor,
             self.depth_camera.sensor,
             self.segmentation_camera.sensor,
