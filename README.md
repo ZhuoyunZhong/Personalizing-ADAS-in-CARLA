@@ -5,7 +5,6 @@ This project aims to design a lane changing method for autonomous vehicles with 
 ### Demonstration
 
 
-
 ### Platform
 
 Ubuntu 18.04
