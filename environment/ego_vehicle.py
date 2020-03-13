@@ -24,6 +24,7 @@ except IndexError:
     pass
 from agents.navigation.roaming_agent import RoamingAgent
 from agents.navigation.basic_agent import BasicAgent
+from agents.navigation.learning_agent import LearningAgent
 
 from manual_control import *
 from sensors import *
@@ -145,13 +146,16 @@ def game_loop(args):
         world = World(client.get_world(), hud, args.filter)
         controller = KeyboardControl(world, start_in_autopilot=True)
 
-        if args.agent == "Roaming":
-            agent = RoamingAgent(world.player)
-        else:
-            pass
+        if args.agent == "Learning":
+            agent = LearningAgent(world.player)
+            # Destination Setting
+            agent.set_destination((230, 39, 0))
+        elif args.agent == "Basic":
             agent = BasicAgent(world.player)
             # Destination Setting
             agent.set_destination((230, 39, 0))
+        else:
+            agent = RoamingAgent(world.player)
 
         clock = pygame.time.Clock()
         while True:
@@ -189,7 +193,7 @@ def main():
                            help='window resolution')
     argparser.add_argument('--filter', metavar='PATTERN', default='vehicle.tesla.*',
                            help='actor filter (default: "vehicle.tesla.*")')
-    argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic"], default="Basic",
+    argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic", "Learning"], default="Learning",
                            help="select which agent to run")
     args = argparser.parse_args()
     args.width, args.height = [int(x) for x in args.res.split('x')]
