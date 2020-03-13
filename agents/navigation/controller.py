@@ -1,45 +1,28 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2018 Intel Labs.
-# authors: German Ros (german.ros@intel.com)
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
-""" This module contains PID controllers to perform lateral and longitudinal control. """
-
-from collections import deque
-import math
-
-import numpy as np
-
 import carla
+
+import math
+import numpy as np
+from collections import deque
 from agents.tools.misc import get_speed
 
 
-class VehiclePIDController():
+class VehiclePIDController:
     """
-    VehiclePIDController is the combination of two PID controllers (lateral and longitudinal) to perform the
-    low level control a vehicle from client side
+    VehiclePIDController is the combination of two PID controllers (lateral and longitudinal)
     """
 
     def __init__(self, vehicle, args_lateral=None, args_longitudinal=None):
         """
         :param vehicle: actor to apply to local planner logic onto
-        :param args_lateral: dictionary of arguments to set the lateral PID controller using the following semantics:
-                             K_P -- Proportional term
-                             K_D -- Differential term
-                             K_I -- Integral term
-        :param args_longitudinal: dictionary of arguments to set the longitudinal PID controller using the following
-        semantics:
-                             K_P -- Proportional term
-                             K_D -- Differential term
-                             K_I -- Integral term
+        :param args_lateral: dictionary of arguments to set the lateral PID controller
+        :param args_longitudinal: dictionary of arguments to set the longitudinal PID controller
         """
         if not args_lateral:
-            args_lateral = {'K_P': 1.0, 'K_D': 0.0, 'K_I': 0.0}
+            args_lateral = {'K_P': 0.4, 'K_I': 0.2, 'K_D': 0.4, 'dt': 0.05}
         if not args_longitudinal:
-            args_longitudinal = {'K_P': 1.0, 'K_D': 0.0, 'K_I': 0.0}
+            args_longitudinal = {'K_P': 1.0, 'K_I': 0.2, 'K_D': 0.6, 'dt': 0.05}
 
         self._vehicle = vehicle
         self._world = self._vehicle.get_world()
@@ -53,27 +36,32 @@ class VehiclePIDController():
 
         :param target_speed: desired vehicle speed
         :param waypoint: target location encoded as a waypoint
-        :return: distance (in meters) to the waypoint
+        :return: Carla.VehicleControl() instance
         """
         throttle = self._lon_controller.run_step(target_speed)
         steering = self._lat_controller.run_step(waypoint)
 
         control = carla.VehicleControl()
         control.steer = steering
-        control.throttle = throttle
-        control.brake = 0.0
+        if throttle >= 0:
+            control.throttle = throttle
+            control.brake = 0.0
+        else:
+            control.brake = -throttle
+            control.throttle = 0.0
         control.hand_brake = False
         control.manual_gear_shift = False
 
         return control
 
 
-class PIDLongitudinalController():
+class PIDLongitudinalController:
     """
     PIDLongitudinalController implements longitudinal control using a PID.
+    Speed longitudinal controller (Position longitudinal controller preferred)
     """
 
-    def __init__(self, vehicle, K_P=1.0, K_D=0.0, K_I=0.0, dt=0.03):
+    def __init__(self, vehicle, K_P=1.0, K_D=0.5, K_I=0.5, dt=0.05):
         """
         :param vehicle: actor to apply to local planner logic onto
         :param K_P: Proportional term
@@ -109,26 +97,29 @@ class PIDLongitudinalController():
         :param target_speed:  target speed in Km/h
         :param current_speed: current speed of the vehicle in Km/h
         :return: throttle control in the range [0, 1]
+                 when it is [-1, 0], it becomes brake control
         """
+        # speed error
         _e = (target_speed - current_speed)
         self._e_buffer.append(_e)
-
+        # d, i term of error
         if len(self._e_buffer) >= 2:
             _de = (self._e_buffer[-1] - self._e_buffer[-2]) / self._dt
             _ie = sum(self._e_buffer) * self._dt
         else:
             _de = 0.0
             _ie = 0.0
+        # control signal
+        return np.clip((self._K_P * _e) + (self._K_D * _de / self._dt) + (self._K_I * _ie * self._dt), -1.0, 1.0)
 
-        return np.clip((self._K_P * _e) + (self._K_D * _de / self._dt) + (self._K_I * _ie * self._dt), 0.0, 1.0)
 
-
-class PIDLateralController():
+class PIDLateralController:
     """
     PIDLateralController implements lateral control using a PID.
+    Vector lateral controller (Stanley lateral controller preferred)
     """
 
-    def __init__(self, vehicle, K_P=1.0, K_D=0.0, K_I=0.0, dt=0.03):
+    def __init__(self, vehicle, K_P=0.5, K_D=0.5, K_I=0.2, dt=0.05):
         """
         :param vehicle: actor to apply to local planner logic onto
         :param K_P: Proportional term
