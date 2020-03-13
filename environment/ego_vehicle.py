@@ -169,7 +169,7 @@ def game_loop(args):
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
-            control = agent.run_step()
+            control = agent.run_step(debug=True)
             control.manual_gear_shift = False
             world.player.apply_control(control)
 
