@@ -23,8 +23,8 @@ class LearningAgent(Agent):
         self._sensors = sensors
         self._proximity_threshold = 10.0  # meters
         self._state = AgentState.NAVIGATING
-        args_lateral_dict = {'K_P': 0.3, 'K_I': 0.05, 'K_D': 0.05}
-        args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.3, 'K_D': 0.1}
+        args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01}
+        args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.05}
         self._local_planner = LocalPlanner(self._vehicle,
                                            opt_dict={'target_speed': target_speed,
                                                      'lateral_control_dict': args_lateral_dict,
