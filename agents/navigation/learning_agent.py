@@ -5,6 +5,7 @@ from agents.navigation.agent import Agent, AgentState
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
+from agents.learning.model import Model
 
 
 class LearningAgent(Agent):
@@ -13,30 +14,30 @@ class LearningAgent(Agent):
     target destination. This agent respects traffic lights and other vehicles.
     """
 
-    def __init__(self, vehicle, sensors, target_speed=30.0):
+    def __init__(self, world):
         """
-
         :param vehicle: actor to apply to local planner logic onto
         """
-        super(LearningAgent, self).__init__(vehicle)
+        super(LearningAgent, self).__init__(world.player)
+        self._world_obj = world
 
-        self._sensors = sensors
+        self._model = Model()
+        self._safe_distance = self._model.get_parameter("safe_distance")
+        self._target_speed = self._model.get_parameter("target_speed")
+
         self._proximity_threshold = 10.0  # meters
         self._state = AgentState.NAVIGATING
         args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01}
         args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.05}
         self._local_planner = LocalPlanner(self._vehicle,
-                                           opt_dict={'target_speed': target_speed,
+                                           opt_dict={'target_speed': self._target_speed,
                                                      'lateral_control_dict': args_lateral_dict,
                                                      'longitudinal_control_dict': args_longitudinal_dict})
         self._hop_resolution = 2.0
         self._path_seperation_hop = 2
         self._path_seperation_threshold = 0.5
-        self._target_speed = target_speed
 
         self._grp = None
-
-        self._safe_distance = 15.0
 
     # Set global destination and get global waypoints
     def set_destination(self, location):
@@ -86,10 +87,9 @@ class LearningAgent(Agent):
         lights_list = actor_list.filter("*traffic_light*")
 
         # Check possible obstacles in front
-        obstacle_sensor = self._sensors["front_obstacle"]
-        if obstacle_sensor.close_to_obstacle:
-            if obstacle_sensor.distance_to_obstacle < self._safe_distance:
-                vehicle = obstacle_sensor.obstacle
+        if self._world_obj.obstacle_sensor.close_to_obstacle:
+            if self._world_obj.obstacle_sensor.distance_to_obstacle < self._safe_distance:
+                vehicle = self._world_obj.obstacle_sensor.obstacle
                 if debug:
                     print('!!! VEHICLE BLOCKING AHEAD [{}])'.format(vehicle.id))
 

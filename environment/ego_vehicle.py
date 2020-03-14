@@ -52,7 +52,6 @@ class World(object):
         self.depth_camera = None
         self.segmentation_camera = None
         self.lidar = None
-        self.sensors = {}
         self.autopilot_mode = True          # driving with agent
         self.restart()
         # Record
@@ -91,8 +90,6 @@ class World(object):
         self.obstacle_sensor = ObstacleSensor(self.player, self.hud)
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
-
-        self.sensors = {"main_rgb": self.main_rgb_camera, "front_obstacle": self.obstacle_sensor}
 
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
@@ -154,7 +151,7 @@ def game_loop(args):
         controller = KeyboardControl(world, start_in_autopilot=True)
 
         if args.agent == "Learning":
-            agent = LearningAgent(world.player, world.sensors)
+            agent = LearningAgent(world)
             # Destination Setting
             agent.set_destination((230, 39, 0))
         elif args.agent == "Basic":
