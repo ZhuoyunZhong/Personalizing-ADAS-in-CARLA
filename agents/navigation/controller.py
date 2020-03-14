@@ -43,12 +43,8 @@ class VehiclePIDController:
 
         control = carla.VehicleControl()
         control.steer = steering
-        if throttle >= 0:
-            control.throttle = throttle
-            control.brake = 0.0
-        else:
-            control.brake = -throttle
-            control.throttle = 0.0
+        control.throttle = throttle
+        control.brake = 0.0
         control.hand_brake = False
         control.manual_gear_shift = False
 
@@ -102,6 +98,7 @@ class PIDLongitudinalController:
         # speed error
         _e = (target_speed - current_speed)
         self._e_buffer.append(_e)
+
         # d, i term of error
         if len(self._e_buffer) >= 2:
             _de = (self._e_buffer[-1] - self._e_buffer[-2]) / self._dt
@@ -110,13 +107,13 @@ class PIDLongitudinalController:
             _de = 0.0
             _ie = 0.0
         # control signal
-        return np.clip((self._K_P * _e) + (self._K_D * _de / self._dt) + (self._K_I * _ie * self._dt), -1.0, 1.0)
+        return np.clip((self._K_P * _e) + (self._K_D * _de / self._dt) + (self._K_I * _ie * self._dt), 0.0, 1.0)
 
 
 class PIDLateralController:
     """
     PIDLateralController implements lateral control using a PID.
-    Vector lateral controller (Stanley lateral controller preferred)
+    Heading lateral controller (Stanley lateral controller preferred)
     """
 
     def __init__(self, vehicle, K_P=0.5, K_D=0.5, K_I=0.2, dt=0.05):
