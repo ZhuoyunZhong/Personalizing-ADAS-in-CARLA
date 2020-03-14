@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2018 Intel Labs.
-# authors: German Ros (german.ros@intel.com)
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
-""" This module contains a local planner to perform low-level waypoint following based on PID controllers. """
-
 from enum import Enum
 from collections import deque
 import random
@@ -20,6 +12,7 @@ from agents.tools.misc import distance_vehicle, draw_waypoints
 class RoadOption(Enum):
     """
     RoadOption represents the possible topological configurations when moving from a segment of lane to other.
+    'Finite State Machine'
     """
     VOID = -1
     LEFT = 1
@@ -35,12 +28,8 @@ class LocalPlanner(object):
     LocalPlanner implements the basic behavior of following a trajectory of waypoints that is generated on-the-fly.
     The low-level motion of the vehicle is computed by using two PID controllers, one is used for the lateral control
     and the other for the longitudinal control (cruise speed).
-
-    When multiple paths are available (intersections) this local planner makes a random choice.
     """
-
-    # minimum distance to target waypoint as a percentage (e.g. within 90% of
-    # total distance)
+    # minimum distance to target waypoint as a percentage (e.g. within 90% of total distance)
     MIN_DISTANCE_PERCENTAGE = 0.9
 
     def __init__(self, vehicle, opt_dict=None):
@@ -75,7 +64,7 @@ class LocalPlanner(object):
         self._global_plan = None
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
-        self._buffer_size = 5
+        self._buffer_size = 7
         self._waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
@@ -92,13 +81,11 @@ class LocalPlanner(object):
 
     def _init_controller(self, opt_dict):
         """
-        Controller initialization.
-
         :param opt_dict: dictionary of arguments.
         :return:
         """
         # default params
-        self._dt = 1.0 / 20.0
+        self._dt = 1.0 / 20.0      # 1/F
         self._target_speed = 20.0  # Km/h
         self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
@@ -143,8 +130,6 @@ class LocalPlanner(object):
 
     def set_speed(self, speed):
         """
-        Request new target speed.
-
         :param speed: new target speed in Km/h
         :return:
         """
@@ -152,8 +137,6 @@ class LocalPlanner(object):
 
     def _compute_next_waypoints(self, k=1):
         """
-        Add new waypoints to the trajectory queue.
-
         :param k: how many waypoints to compute
         :return:
         """
@@ -171,11 +154,9 @@ class LocalPlanner(object):
                 road_option = RoadOption.LANEFOLLOW
             else:
                 # random choice between the possible options
-                road_options_list = _retrieve_options(
-                    next_waypoints, last_waypoint)
+                road_options_list = _retrieve_options(next_waypoints, last_waypoint)
                 road_option = random.choice(road_options_list)
-                next_waypoint = next_waypoints[road_options_list.index(
-                    road_option)]
+                next_waypoint = next_waypoints[road_options_list.index(road_option)]
 
             self._waypoints_queue.append((next_waypoint, road_option))
 
@@ -195,10 +176,11 @@ class LocalPlanner(object):
         :return:
         """
 
-        # not enough waypoints in the horizon? => add more!
+        # if not enough waypoints in the horizon, add more
         if not self._global_plan and len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
             self._compute_next_waypoints(k=100)
 
+        # Empty queue
         if len(self._waypoints_queue) == 0:
             control = carla.VehicleControl()
             control.steer = 0.0
@@ -209,15 +191,15 @@ class LocalPlanner(object):
 
             return control
 
-        #   Buffering the waypoints
+        # Buffering the waypoints
         if not self._waypoint_buffer:
             for i in range(self._buffer_size):
                 if self._waypoints_queue:
-                    self._waypoint_buffer.append(
-                        self._waypoints_queue.popleft())
+                    self._waypoint_buffer.append(self._waypoints_queue.popleft())
                 else:
                     break
 
+        # Control Vehicle
         # current vehicle waypoint
         vehicle_transform = self._vehicle.get_transform()
         self._current_waypoint = self._map.get_waypoint(vehicle_transform.location)
@@ -244,6 +226,7 @@ class LocalPlanner(object):
     def done(self):
         vehicle_transform = self._vehicle.get_transform()
         return len(self._waypoints_queue) == 0 and all([distance_vehicle(wp, vehicle_transform) < self._min_distance for wp in self._waypoints_queue])
+
 
 def _retrieve_options(list_waypoints, current_waypoint):
     """
