@@ -64,7 +64,7 @@ except ImportError:
 
 
 class KeyboardControl(object):
-    def __init__(self, world, start_in_autopilot):
+    def __init__(self, world, start_in_autopilot=False):
         self._autopilot_enabled = start_in_autopilot
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
