@@ -68,7 +68,7 @@ class LocalPlanner(object):
         self._waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
-        self._init_controller(opt_dict)
+        self.init_controller(opt_dict)
 
     def __del__(self):
         if self._vehicle:
@@ -79,7 +79,7 @@ class LocalPlanner(object):
         self._vehicle = None
         print("Resetting ego-vehicle!")
 
-    def _init_controller(self, opt_dict):
+    def init_controller(self, opt_dict):
         """
         :param opt_dict: dictionary of arguments.
         :return:

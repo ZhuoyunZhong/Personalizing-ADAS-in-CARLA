@@ -68,6 +68,7 @@ except ImportError:
 class KeyboardControl(object):
     def __init__(self, world, start_in_autopilot=False):
         self._autopilot_enabled = start_in_autopilot
+        self._learning_enabled = False
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             world.enable_agent(start_in_autopilot)
@@ -166,6 +167,12 @@ class KeyboardControl(object):
                         self._autopilot_enabled = not self._autopilot_enabled
                         world.enable_agent(self._autopilot_enabled)
                         world.hud.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
+
+                    # learning mode
+                    elif event.key == K_l and not self._autopilot_enabled:
+                        self._learning_enabled = not self._learning_enabled
+                        world.enable_learning(self._learning_enabled)
+                        world.hud.notification('Learning %s' % ('On' if self._learning_enabled else 'Off'))
 
         # send control signal
         if not self._autopilot_enabled:

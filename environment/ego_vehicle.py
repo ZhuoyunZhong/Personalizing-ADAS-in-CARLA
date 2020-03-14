@@ -32,7 +32,8 @@ from hud import *
 
 
 class World(object):
-    def __init__(self, carla_world, hud, actor_filter):
+    def __init__(self, carla_world, hud, actor_filter, agent_str):
+        # World
         self.world = carla_world
         self.map = self.world.get_map()
         self.hud = hud
@@ -41,7 +42,7 @@ class World(object):
         self._weather_index = 0
         self._weather_presets = None
         self.find_weather_presets()
-        # Ego
+        # Ego and sensors
         self.spawn_loc = [50, 7.5, 0.5]     # spawn location
         self._actor_filter = actor_filter   # vehicle type
         self.player = None                  # ego vehicle
@@ -52,7 +53,11 @@ class World(object):
         self.depth_camera = None
         self.segmentation_camera = None
         self.lidar = None
+        # Agent
+        self.agent_name = agent_str
+        self.agent = None
         self.autopilot_mode = True          # driving with agent
+        self.is_learning = False            # learning mode
         self.restart()
         # Record
         self.recording_enabled = False
@@ -65,7 +70,6 @@ class World(object):
         blueprint.set_attribute('color', '0, 0, 0')
         # Spawn the player.
         if self.player is not None:
-            self.player.destroy()
             self.destroy()
             spawn_point = carla.Transform(carla.Location(x=self.spawn_loc[0],
                                                          y=self.spawn_loc[1], z=self.spawn_loc[2]))
@@ -91,6 +95,19 @@ class World(object):
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
 
+        # Reset agent
+        if self.agent_name == "Learning":
+            self.agent = LearningAgent(self)
+            # Destination Setting
+            self.agent.set_destination((230, 39, 0))
+        elif self.agent_name == "Basic":
+            self.agent = BasicAgent(self.player)
+            # Destination Setting
+            self.agent.set_destination((230, 39, 0))
+        else:
+            self.agent = RoamingAgent(self.player)
+
+        # Display
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
 
@@ -117,6 +134,9 @@ class World(object):
     def enable_agent(self, enabled):
         self.autopilot_mode = enabled
 
+    def enable_learning(self, enabled):
+        self.is_learning = enabled
+
     def destroy(self):
         actors = [
             self.main_rgb_camera.sensor,
@@ -139,33 +159,28 @@ def game_loop(args):
     world = None
 
     try:
+        # Connect to client
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
-
+        # Display setting
         display = pygame.display.set_mode(
             (args.width, args.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
-
         hud = HUD(args.width, args.height)
-        world = World(client.get_world(), hud, args.filter)
+
+        # World
+        world = World(client.get_world(), hud, args.filter, args.agent)
+        # Keyboard Control
         controller = KeyboardControl(world, start_in_autopilot=True)
 
-        if args.agent == "Learning":
-            agent = LearningAgent(world)
-            # Destination Setting
-            agent.set_destination((230, 39, 0))
-        elif args.agent == "Basic":
-            agent = BasicAgent(world.player)
-            # Destination Setting
-            agent.set_destination((230, 39, 0))
-        else:
-            agent = RoamingAgent(world.player)
-
-        clock = pygame.time.Clock()
         # Manually start the vehicle to avoid control delay
         world.player.apply_control(carla.VehicleControl(manual_gear_shift=True, gear=1))
         world.player.apply_control(carla.VehicleControl(manual_gear_shift=False))
+
+        clock = pygame.time.Clock()
+        learning_flag = False
         while True:
+            # Keyboard control
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock):
                 return
@@ -175,10 +190,20 @@ def game_loop(args):
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
+            
+            # Agent learning
+            if world.agent_name == "Learning":
+                if world.is_learning:
+                    world.agent.collect()
+                    learning_flag = True
+                elif not world.is_learning and learning_flag:
+                    world.agent.end_collect()
+                    learning_flag = False
 
+            # Agent autopilot
             if world.autopilot_mode:
                 # control signal to vehicle
-                control = agent.run_step()
+                control = world.agent.run_step()
                 control.manual_gear_shift = False
                 world.player.apply_control(control)
 
