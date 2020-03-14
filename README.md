@@ -5,7 +5,6 @@ This project aims to design a lane changing method for autonomous vehicles with 
 ### Demonstration
 
 
-
 ### Platform
 
 Ubuntu 18.04
@@ -46,4 +45,9 @@ Ubuntu 18.04
 
 ### Known Bugs
 
+<<<<<<< HEAD
 1. Ego Vehicle Rebuild won't delete the previous ego vehicle
+=======
+
+...
+>>>>>>> 69451d9e4b5fd0c0d55623d4d29c59d24222c313
