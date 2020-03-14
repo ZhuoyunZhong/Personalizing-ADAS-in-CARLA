@@ -2,14 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="Add Scene">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/joeyzhong.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/joeyzhong.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/environment/ego_vehicle.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/ego_vehicle.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/environment/hud.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/hud.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/environment/load_actors.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/environment/manual_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/manual_control.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/environment/sensors.py" beforeDir="false" afterPath="$PROJECT_DIR$/environment/sensors.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,15 +24,16 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/agents/learning" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/agents/learning" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/environment" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="SvnConfiguration">
@@ -61,6 +56,7 @@
       <workItem from="1583210100115" duration="1835000" />
       <workItem from="1583211943674" duration="1747000" />
       <workItem from="1584068816535" duration="9462000" />
+      <workItem from="1584171715026" duration="15213000" />
     </task>
     <task id="LOCAL-00001" summary="Update README">
       <created>1583211812412</created>
@@ -104,7 +100,42 @@
       <option name="project" value="LOCAL" />
       <updated>1583212902057</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="check_obs">
+      <created>1584160373381</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1584160373381</updated>
+    </task>
+    <task id="LOCAL-00008" summary="learning-agent">
+      <created>1584160422078</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1584160422078</updated>
+    </task>
+    <task id="LOCAL-00009" summary="simplify arguments">
+      <created>1584177005995</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1584177005995</updated>
+    </task>
+    <task id="LOCAL-00010" summary="model file">
+      <created>1584182690831</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1584182690831</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Add Learning module">
+      <created>1584188931220</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1584188931221</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -116,9 +147,22 @@
     <MESSAGE value="Disable lane detection" />
     <MESSAGE value="Scene file" />
     <MESSAGE value="Add segmentation camera" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add segmentation camera" />
+    <MESSAGE value="check_obs" />
+    <MESSAGE value="learning-agent" />
+    <MESSAGE value="simplify arguments" />
+    <MESSAGE value="model file" />
+    <MESSAGE value="Add Learning module" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add Learning module" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="654" y="208" width="1076" height="721" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584172846745">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="654" y="208" width="1076" height="721" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1584172846745" />
+    <state x="696" y="353" width="590" height="398" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584171749113">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="696" y="353" width="590" height="398" key="#com.intellij.fileTypes.FileTypeChooser/67.27.1853.1052@67.27.1853.1052" timestamp="1584171749113" />
     <state x="1392" y="334" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1582828183626">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
@@ -127,21 +171,25 @@
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="1130" y="192" width="642" height="772" key="#run/67.27.1853.1052@67.27.1853.1052" timestamp="1583212047815" />
-    <state x="559" y="44" width="865" height="920" key="CommitChangelistDialog2" timestamp="1583212901974">
+    <state x="761" y="47" width="865" height="920" key="CommitChangelistDialog2" timestamp="1584188931095">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="559" y="44" width="865" height="920" key="CommitChangelistDialog2/67.27.1853.1052@67.27.1853.1052" timestamp="1583212901974" />
+    <state x="761" y="47" width="865" height="920" key="CommitChangelistDialog2/67.27.1853.1052@67.27.1853.1052" timestamp="1584188931095" />
     <state x="537" y="259" width="1016" height="738" key="SettingsEditor" timestamp="1582619933534">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="537" y="259" width="1016" height="738" key="SettingsEditor/67.27.1853.1052@67.27.1853.1052" timestamp="1582619933534" />
-    <state x="455" y="275" key="com.intellij.ide.util.TipDialog" timestamp="1584068817361">
+    <state x="455" y="267" key="com.intellij.ide.util.TipDialog" timestamp="1584171717413">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="455" y="275" key="com.intellij.ide.util.TipDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1584068817361" />
-    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup" timestamp="1584071599538">
+    <state x="455" y="267" key="com.intellij.ide.util.TipDialog/67.27.1853.1052@67.27.1853.1052" timestamp="1584171717413" />
+    <state x="822" y="458" width="459" height="168" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1584188975998">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="430" y="277" width="672" height="160" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1584071599538" />
+    <state x="822" y="458" width="459" height="168" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/67.27.1853.1052@67.27.1853.1052" timestamp="1584188975998" />
+    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup" timestamp="1584183138543">
+      <screen x="67" y="27" width="1853" height="1052" />
+    </state>
+    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1584183138543" />
   </component>
 </project>
