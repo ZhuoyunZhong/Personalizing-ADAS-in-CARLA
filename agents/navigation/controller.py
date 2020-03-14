@@ -165,6 +165,12 @@ class PIDLateralController:
         if _cross[2] < 0:
             _dot *= -1.0
 
+        # _dot should range from -pi to pi
+        if _dot > 1.5708:
+            _dot = -(math.pi - _dot)
+        elif _dot < -1.5708:
+            _dot = math.pi + _dot
+
         self._e_buffer.append(_dot)
         if len(self._e_buffer) >= 2:
             _de = (self._e_buffer[-1] - self._e_buffer[-2]) / self._dt
@@ -172,6 +178,6 @@ class PIDLateralController:
         else:
             _de = 0.0
             _ie = 0.0
-
+        print(_dot, _ie, _de)
         return np.clip((self._K_P * _dot) + (self._K_D * _de /
                                              self._dt) + (self._K_I * _ie * self._dt), -1.0, 1.0)
