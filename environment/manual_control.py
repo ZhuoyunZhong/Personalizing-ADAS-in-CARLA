@@ -176,7 +176,7 @@ class KeyboardControl(object):
     def _parse_vehicle_keys(self, keys, milliseconds):
         throttle_increment = 7e-4 * milliseconds
         if keys[K_UP] or keys[K_w]:
-            self._control.throttle = min(abs(self._control.throttle + throttle_increment), 0.6)
+            self._control.throttle = min(abs(self._control.throttle + throttle_increment), 0.9)
         else:
             self._control.throttle = 0
         steer_increment = 5e-4 * milliseconds
