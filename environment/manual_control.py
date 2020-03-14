@@ -21,7 +21,9 @@ try:
     from pygame.locals import K_TAB
     from pygame.locals import K_BACKQUOTE
     from pygame.locals import K_c
+
     from pygame.locals import K_p
+    from pygame.locals import K_l
 
     from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT
     from pygame.locals import K_w, K_a, K_s, K_d
@@ -36,12 +38,12 @@ try:
 except ImportError:
     raise RuntimeError('cannot import pygame, make sure pygame package is installed')
 
-
 """
     F1           : toggle HUD
     H            : toggle help
     ESC          : quit
     P            : toggle autopilot
+    L            : toggle learning mode
     C            : change weather (Shift+C reverse)
     TAB          : change sensor position
     `            : change sensor
@@ -68,7 +70,7 @@ class KeyboardControl(object):
         self._autopilot_enabled = start_in_autopilot
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
-            world.player.set_autopilot(self._autopilot_enabled)
+            world.enable_agent(start_in_autopilot)
         else:
             raise NotImplementedError("Actor type not supported")
         '''
@@ -126,7 +128,7 @@ class KeyboardControl(object):
                     world.destroy_sensors()
                     # disable autopilot
                     self._autopilot_enabled = False
-                    world.player.set_autopilot(self._autopilot_enabled)
+                    world.enable_agent(self._autopilot_enabled)
                     world.hud.notification("Replaying file 'manual_recording.rec'")
                     # replayer
                     client.replay_file("manual_recording.rec", world.recording_start, 0, 0)
@@ -158,18 +160,22 @@ class KeyboardControl(object):
                         self._control.gear = max(-1, self._control.gear - 1)
                     elif self._control.manual_gear_shift and event.key == K_PERIOD:
                         self._control.gear = self._control.gear + 1
+
                     # autopilot mode
                     elif event.key == K_p and not (pygame.key.get_mods() & KMOD_CTRL):
                         self._autopilot_enabled = not self._autopilot_enabled
-                        world.player.set_autopilot(self._autopilot_enabled)
+                        world.enable_agent(self._autopilot_enabled)
                         world.hud.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
+
         # send control signal
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
                 self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
                 self._control.reverse = self._control.gear < 0
+            '''
             elif isinstance(self._control, carla.WalkerControl):
                 self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time(), world)
+            '''
             world.player.apply_control(self._control)
 
     # Vehicle Control
@@ -221,4 +227,4 @@ class KeyboardControl(object):
 
     @staticmethod
     def _is_quit_shortcut(key):
-        return (key == K_ESCAPE) or (key == K_q and pygame.key.get_mods() & KMOD_CTRL)
+        return key == K_ESCAPE

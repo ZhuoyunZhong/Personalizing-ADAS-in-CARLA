@@ -42,10 +42,10 @@ class World(object):
         self._weather_presets = None
         self.find_weather_presets()
         # Ego
-        self.spawn_loc = [50, 7.5, 0.5]
-        self._actor_filter = actor_filter
-        self.player = None
-        self.obstacle_sensor = None
+        self.spawn_loc = [50, 7.5, 0.5]     # spawn location
+        self._actor_filter = actor_filter   # vehicle type
+        self.player = None                  # ego vehicle
+        self.obstacle_sensor = None         # sensors
         self.collision_sensor = None
         self.gnss_sensor = None
         self.main_rgb_camera = None
@@ -53,6 +53,7 @@ class World(object):
         self.segmentation_camera = None
         self.lidar = None
         self.sensors = {}
+        self.autopilot_mode = True          # driving with agent
         self.restart()
         # Record
         self.recording_enabled = False
@@ -116,16 +117,19 @@ class World(object):
         self.main_rgb_camera.render(display)
         self.hud.render(display)
 
+    def enable_agent(self, enabled):
+        self.autopilot_mode = enabled
+
     def destroy(self):
         actors = [
-            # self.player,
             self.main_rgb_camera.sensor,
             self.depth_camera.sensor,
             self.segmentation_camera.sensor,
             self.lidar.sensor,
             self.obstacle_sensor.sensor,
             self.collision_sensor.sensor,
-            self.gnss_sensor.sensor]
+            self.gnss_sensor.sensor,
+            self.player]
         for actor in actors:
             if actor is not None:
                 actor.destroy()
@@ -166,7 +170,7 @@ def game_loop(args):
         world.player.apply_control(carla.VehicleControl(manual_gear_shift=False))
         while True:
             clock.tick_busy_loop(60)
-            if controller.parse_events():
+            if controller.parse_events(client, world, clock):
                 return
 
             # as soon as the server is ready continue!
@@ -175,12 +179,11 @@ def game_loop(args):
             world.render(display)
             pygame.display.flip()
 
-            # control signal to vehicle
-            control = agent.run_step()
-            control.manual_gear_shift = False
-            world.player.apply_control(control)
-            print(control)
-            print(world.player.get_control().throttle, control.throttle)
+            if world.autopilot_mode:
+                # control signal to vehicle
+                control = agent.run_step()
+                control.manual_gear_shift = False
+                world.player.apply_control(control)
 
     finally:
         if world is not None:

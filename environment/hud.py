@@ -194,6 +194,7 @@ class HelpText(object):
                  "H            : toggle help",
                  "ESC          : quit",
                  "P            : toggle autopilot",
+                 "L            : toggle learning mode",
                  "C            : change weather (Shift+C reverse)",
                  "TAB          : change sensor position",
                  "`            : change sensor",
