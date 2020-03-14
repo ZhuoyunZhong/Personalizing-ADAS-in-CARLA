@@ -24,7 +24,7 @@ except IndexError:
     pass
 from agents.navigation.roaming_agent import RoamingAgent
 from agents.navigation.basic_agent import BasicAgent
-#from agents.navigation.learning_agent import LearningAgent
+from agents.navigation.learning_agent import LearningAgent
 
 from manual_control import *
 from sensors import *
@@ -166,7 +166,7 @@ def game_loop(args):
         world.player.apply_control(carla.VehicleControl(manual_gear_shift=False))
         while True:
             clock.tick_busy_loop(60)
-            if controller.parse_events(client, world, clock):
+            if controller.parse_events():
                 return
 
             # as soon as the server is ready continue!
@@ -202,7 +202,7 @@ def main():
                            help='window resolution')
     argparser.add_argument('--filter', metavar='PATTERN', default='vehicle.tesla.*',
                            help='actor filter (default: "vehicle.tesla.*")')
-    argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic", "Learning"], default="Basic",
+    argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic", "Learning"], default="Learning",
                            help="select which agent to run")
     args = argparser.parse_args()
     args.width, args.height = [int(x) for x in args.res.split('x')]
