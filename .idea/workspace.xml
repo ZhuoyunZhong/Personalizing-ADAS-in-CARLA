@@ -3,6 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Default_model.mkv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/Learned_model.mkv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/scene_demo.mkv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/straight_lane.mkv" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,7 +59,7 @@
       <workItem from="1583210100115" duration="1835000" />
       <workItem from="1583211943674" duration="1747000" />
       <workItem from="1584068816535" duration="9462000" />
-      <workItem from="1584171715026" duration="16234000" />
+      <workItem from="1584171715026" duration="67214000" />
     </task>
     <task id="LOCAL-00001" summary="Update README">
       <created>1583211812412</created>
@@ -141,7 +145,63 @@
       <option name="project" value="LOCAL" />
       <updated>1584189142307</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="fix lateral bug">
+      <created>1584215782499</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1584215782499</updated>
+    </task>
+    <task id="LOCAL-00014" summary="fix lateral bug">
+      <created>1584215810982</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1584215810982</updated>
+    </task>
+    <task id="LOCAL-00015" summary="demo">
+      <created>1584252930561</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1584252930561</updated>
+    </task>
+    <task id="LOCAL-00016" summary="default_model">
+      <created>1584252939694</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1584252939694</updated>
+    </task>
+    <task id="LOCAL-00017" summary="add lane changing and poly learning module">
+      <created>1584253047764</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1584253047764</updated>
+    </task>
+    <task id="LOCAL-00018" summary="add lane changing and poly learning module">
+      <created>1584253054389</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1584253054389</updated>
+    </task>
+    <task id="LOCAL-00019" summary="add lane changing and poly learning module">
+      <created>1584253065551</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1584253065551</updated>
+    </task>
+    <task id="LOCAL-00020" summary="demo">
+      <created>1584253676476</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1584253676476</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -159,7 +219,11 @@
     <MESSAGE value="model file" />
     <MESSAGE value="Add Learning module" />
     <MESSAGE value="xml" />
-    <option name="LAST_COMMIT_MESSAGE" value="xml" />
+    <MESSAGE value="fix lateral bug" />
+    <MESSAGE value="default_model" />
+    <MESSAGE value="add lane changing and poly learning module" />
+    <MESSAGE value="demo" />
+    <option name="LAST_COMMIT_MESSAGE" value="demo" />
   </component>
   <component name="WindowStateProjectService">
     <state x="654" y="208" width="1076" height="721" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584172846745">
@@ -178,10 +242,10 @@
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="1130" y="192" width="642" height="772" key="#run/67.27.1853.1052@67.27.1853.1052" timestamp="1583212047815" />
-    <state x="761" y="47" width="865" height="920" key="CommitChangelistDialog2" timestamp="1584188931095">
+    <state x="761" y="19" width="865" height="920" key="CommitChangelistDialog2" timestamp="1584253676441">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="761" y="47" width="865" height="920" key="CommitChangelistDialog2/67.27.1853.1052@67.27.1853.1052" timestamp="1584188931095" />
+    <state x="761" y="19" width="865" height="920" key="CommitChangelistDialog2/67.27.1853.1052@67.27.1853.1052" timestamp="1584253676441" />
     <state x="537" y="259" width="1016" height="738" key="SettingsEditor" timestamp="1582619933534">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
@@ -194,9 +258,9 @@
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="822" y="458" width="459" height="168" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/67.27.1853.1052@67.27.1853.1052" timestamp="1584188975998" />
-    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup" timestamp="1584183138543">
+    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup" timestamp="1584231792286">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1584183138543" />
+    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1584231792286" />
   </component>
 </project>
