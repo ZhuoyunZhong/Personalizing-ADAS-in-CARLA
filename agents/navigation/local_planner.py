@@ -30,7 +30,7 @@ class LocalPlanner(object):
     and the other for the longitudinal control (cruise speed).
     """
     # minimum distance to target waypoint as a percentage (e.g. within 90% of total distance)
-    MIN_DISTANCE_PERCENTAGE = 0.9
+    MIN_DISTANCE_PERCENTAGE = 0.7
 
     def __init__(self, vehicle, opt_dict=None):
         """
@@ -64,8 +64,8 @@ class LocalPlanner(object):
         self._global_plan = None
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
-        self._buffer_size = 7
-        self._waypoint_buffer = deque(maxlen=self._buffer_size)
+        self._buffer_size = 5
+        self.waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
         self.init_controller(opt_dict)
@@ -160,12 +160,31 @@ class LocalPlanner(object):
 
             self._waypoints_queue.append((next_waypoint, road_option))
 
-    def set_global_plan(self, current_plan):
+    def set_local_plan(self, local_plan):
+        # Clear previous queue
         self._waypoints_queue.clear()
+
+        # Add local plan waypoints
+        for elem in local_plan:
+            self._waypoints_queue.append(elem)
+        self._target_road_option = RoadOption.CHANGELANELEFT
+        self._global_plan = False
+
+    def add_global_plan(self, current_plan):
+        # Add global plan waypoints
         for elem in current_plan:
             self._waypoints_queue.append(elem)
         self._target_road_option = RoadOption.LANEFOLLOW
         self._global_plan = True
+
+    def set_global_plan(self, current_plan):
+        # Clear previous queue before setting global plan
+        self._waypoints_queue.clear()
+        self.add_global_plan(current_plan)
+        self._global_plan = True
+
+    def get_global_destination(self):
+        return self._waypoints_queue[-1][0]
 
     def run_step(self, debug=True):
         """
@@ -192,10 +211,10 @@ class LocalPlanner(object):
             return control
 
         # Buffering the waypoints
-        if not self._waypoint_buffer:
+        if not self.waypoint_buffer:
             for i in range(self._buffer_size):
                 if self._waypoints_queue:
-                    self._waypoint_buffer.append(self._waypoints_queue.popleft())
+                    self.waypoint_buffer.append(self._waypoints_queue.popleft())
                 else:
                     break
 
@@ -204,19 +223,11 @@ class LocalPlanner(object):
         vehicle_transform = self._vehicle.get_transform()
         self._current_waypoint = self._map.get_waypoint(vehicle_transform.location)
         # target waypoint
-        self.target_waypoint, self._target_road_option = self._waypoint_buffer[0]
+        self.target_waypoint, self._target_road_option = self.waypoint_buffer[0]
         # move using PID controllers
         control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
 
-        # purge the queue of obsolete waypoints
-        max_index = -1
-
-        for i, (waypoint, _) in enumerate(self._waypoint_buffer):
-            if waypoint.transform.location.distance(vehicle_transform.location) < self._min_distance:
-                max_index = i
-        if max_index >= 0:
-            for i in range(max_index + 1):
-                self._waypoint_buffer.popleft()
+        self.update_buffer()
 
         if debug:
             draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
@@ -226,6 +237,16 @@ class LocalPlanner(object):
     def done(self):
         vehicle_transform = self._vehicle.get_transform()
         return len(self._waypoints_queue) == 0 and all([distance_vehicle(wp, vehicle_transform) < self._min_distance for wp in self._waypoints_queue])
+
+    def update_buffer(self):
+        # purge the queue of obsolete waypoints
+        max_index = -1
+        for i, (waypoint, _) in enumerate(self.waypoint_buffer):
+            if waypoint.transform.location.distance(self._vehicle.get_location()) < self._min_distance:
+                max_index = i
+        if max_index >= 0:
+            for i in range(max_index + 1):
+                self.waypoint_buffer.popleft()
 
 
 def _retrieve_options(list_waypoints, current_waypoint):

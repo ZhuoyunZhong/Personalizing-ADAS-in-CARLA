@@ -21,7 +21,7 @@ Ubuntu 18.04
 
    run CARLA in Low Graphic Quality 
 
-   `  ./CarlaUE4.sh -quality-level=Lo`
+   `  ./CarlaUE4.sh -quality-level=Low`
 
    or off-screen mode
 
@@ -41,13 +41,4 @@ Ubuntu 18.04
    
    `python run.py -s 2` 
    
-   
-
-### Known Bugs
-
-<<<<<<< HEAD
-1. Ego Vehicle Rebuild won't delete the previous ego vehicle
-=======
-
-...
->>>>>>> 69451d9e4b5fd0c0d55623d4d29c59d24222c313
+5.  The vehicle is initialized with autopilot mode **on**. To switch to manual control, press `p`. To start or end the learning process, press `l` and drive the vehicle. After learning, it requires to regenerate the scene in order to see the learning result.
