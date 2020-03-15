@@ -203,7 +203,7 @@ def game_loop(args):
             # Agent autopilot
             if world.autopilot_mode:
                 # control signal to vehicle
-                control = world.agent.run_step()
+                control = world.agent.run_step(debug=True)
                 control.manual_gear_shift = False
                 world.player.apply_control(control)
 
