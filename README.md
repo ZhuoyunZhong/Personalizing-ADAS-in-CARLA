@@ -8,8 +8,22 @@ This project aims to design a lane changing method for autonomous vehicles with 
 ### Platform
 
 Ubuntu 18.04
+[CARLA](http://carla.org/) 0.9.8
 
-[CARLA](http://carla.org/) 0.9.7
+#### Carla Installation Steps
+Add the CARLA 0.9.8 repository to the system.
+```
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 304F9BC29914A77D &&
+sudo add-apt-repository "deb [arch=amd64 trusted=yes] http://dist.carla.org/carla-0.9.8/ all main"
+```
+
+Install CARLA and check for the installation in the /opt/ folder.
+
+```
+sudo apt-get update
+sudo apt-get install carla
+cd /opt/carla
+```
 
 ### Run
 
