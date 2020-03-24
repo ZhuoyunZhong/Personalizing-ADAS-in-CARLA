@@ -1,18 +1,23 @@
 #!/usr/bin/env python
-
-# Copyright (c) 2018 Intel Labs.
-# authors: German Ros (german.ros@intel.com)
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
-""" Module with auxiliary functions. """
+""" Module with auxiliary / helper functions. """
 
 import math
-
 import numpy as np
 
 import carla
+
+
+def get_poly_y(x, param):
+    """
+    Compute polynomial y given x and polynomial parameters
+    :param x: a numpy vector of x
+    :param param: polynomial parameters
+    :return: a numpy vector of y
+    """
+    t_m = np.array([np.power(x, 0), np.power(x, 1), np.power(x, 2),
+                    np.power(x, 3), np.power(x, 4), np.power(x, 5)])
+    y = np.matmul(param, t_m)
+    return y
 
 
 def draw_waypoints(world, waypoints, z=0.5):
