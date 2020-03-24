@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import math
+from math import pi, sin, cos, radians, sqrt
 from scipy.interpolate import splrep, splev
 from agents.navigation.local_planner import RoadOption
 from agents.navigation.local_waypoint import LocalWaypoint
@@ -9,7 +9,7 @@ from agents.tools.misc import get_poly_y
 
 
 # This class generate lateral and longitudinal quintic polynomial
-# trajectory s(t) and generate waypoints according to target_speed
+# trajectory s(t) d(t) and generate waypoints according to target_speed
 class PolyLaneChange:
     def __init__(self, world, param):
         self._world_obj = world
@@ -29,8 +29,8 @@ class PolyLaneChange:
         x_ref = ref[0]
         y_ref = ref[1]
         yaw = ref[2]
-        sy = math.sin(math.radians(yaw))
-        cy = math.cos(math.radians(yaw))
+        sy = sin(radians(yaw))
+        cy = cos(radians(yaw))
 
         # Get points
         t = np.linspace(0, self._dt, self._npts)
@@ -49,8 +49,48 @@ class PolyLaneChange:
         return lane_change_plan
 
 
-# This class generate lateral and longitudinal quintic polynomial
-# trajectory s(t) and generate waypoints according to target_speed
+# This class generate waypoints given sinusoidal trajectory
+class SinLaneChange:
+    def __init__(self, world, param):
+        self._world_obj = world
+        self._map = self._world_obj.world.get_map()
+
+        self._lon_dis = param['lon_dis']
+        self._lat_dis = param['lat_dis']
+        self._dt = param["dt"]
+
+        self._npts = 15
+
+    # Return lane change waypoints
+    def get_waypoints(self, ref):
+        lane_change_plan = []
+        x_ref = ref[0]
+        y_ref = ref[1]
+        yaw = ref[2]
+        sy = sin(radians(yaw))
+        cy = cos(radians(yaw))
+
+        # Get points
+        t = np.linspace(0, self._dt, self._npts)
+        x = np.linspace(0, self._lon_dis, self._npts)
+        # a_lat = (2*pi*self._lat_dis) / (self._dt*self._dt) * np.sin(2*pi * t_lat/self._dt)
+        # v_lat = -self._lat_dis/self._dt * np.sin(2*pi * t_lat/self._dt) + self._lat_dis/self._dt
+        y = -self._lat_dis/(2*pi) * np.sin(2*pi * t/self._dt) + self._lat_dis * t/self._dt
+
+        # Transform to world coordinate
+        R = np.array([[cy, -sy], [sy, cy]])
+        coord = np.matmul(R, np.stack((x, y))) + np.array([[x_ref], [y_ref]])
+
+        # Store waypoints
+        for i in range(self._npts):
+            waypoint = LocalWaypoint(coord[0][i], coord[1][i], 0)
+            lane_change_plan.append((waypoint, RoadOption.CHANGELANELEFT))
+
+        return lane_change_plan
+
+
+# TODO
+# This class generate waypoints of spline trajectory
 class SplineLaneChange:
     def __init__(self, world, param):
         self._world_obj = world
@@ -70,10 +110,10 @@ class SplineLaneChange:
         x_ref = ref[0]
         y_ref = ref[1]
         yaw = ref[2]
-        sy = math.sin(math.radians(yaw))
-        cy = math.cos(math.radians(yaw))
+        sy = sin(radians(yaw))
+        cy = cos(radians(yaw))
 
-        dt = math.sqrt(self._lat_dis ** 2 + self._lon_dis ** 2) / target_speed  # For future
+        dt = sqrt(self._lat_dis ** 2 + self._lon_dis ** 2) / target_speed  # For future
         increment_x = self._lon_dis / self._npts
 
         # If extras exists, refit tck with extra points

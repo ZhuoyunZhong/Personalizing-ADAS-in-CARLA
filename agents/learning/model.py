@@ -24,6 +24,7 @@ class Model:
         self._distance_list = []
         self._speed_list = []
         self._poly_points = []
+        self._sin_points = []
         self._spline_points = []
 
     def load_model(self):
@@ -34,6 +35,7 @@ class Model:
                      "poly_param": {"lon_dis": 30, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
+                     "sin_param": {"lon_dis": 30, "lat_dis": -3.5, "dt": 4.0},
                      "spline_param": {"lon_dis": 30, "lat_dis": -3.5,
                                       "tck": splrep([0, 1, 2, 28, 29, 30], [0, 0, 0, -3.5, -3.5, -3.5])}}
             with open(self.path, 'wb') as f:
@@ -53,6 +55,7 @@ class Model:
                 self._distance_list.append(dict_param["distance"])
             if "points" in dict_param:
                 self._poly_points.append(dict_param["points"])
+                self._sin_points.append(dict_param["points"])
                 self._spline_points.append(dict_param["points"])
 
     # Return a certain parameter value
@@ -192,8 +195,71 @@ class Model:
         self._poly_points = []
         print("Poly Parameters Updated")
 
+    def update_sin_param(self, debug=True):
+        """
+        Sinusoidal Method comes from:
+        V. A. Butakov and P. Ioannou,
+        "Personalized Driver/Vehicle Lane Change Models for ADAS,"
+        in IEEE Transactions on Vehicular Technology, vol. 64, no. 10, pp. 4422-4431, Oct. 2015.
+        """
+        if len(self._sin_points) < 50:
+            return
+
+        current_sin_param = self.get_parameter("sin_param")
+        current_lon_dis = current_sin_param["lon_dis"]
+        current_lat_dis = current_sin_param["lat_dis"]
+        current_dt = current_sin_param["dt"]
+
+        # Get points while lane changing
+        x_v, y_v, t_v = self.get_lane_changing_points(self._sin_points)
+        if len(x_v) < 10:
+            return
+
+        # New lane changing parameters
+        new_dt = t_v[-1] - t_v[0]
+        new_lon_dis = x_v[-1] - x_v[0]
+        new_lat_dis = y_v[-1] - y_v[0]
+        # update values
+        dt = self.change_param(current_dt, new_dt)
+        lon_dis = self.change_param(current_lon_dis, new_lon_dis)
+        lat_dis = self.change_param(current_lat_dis, new_lat_dis)
+
+        if debug:
+            t_after = np.linspace(0, dt, 100)
+            t_curr = np.linspace(0, current_dt, 100)
+            plt.figure(figsize=(3, 9))
+            plt.subplot(312)
+            plt.xlabel('time (t)')
+            plt.ylabel('Longitudinal (m)')
+            x_after = np.linspace(0, lon_dis, 100)
+            x_curr = np.linspace(0, current_lon_dis, 100)
+            plt.plot(t_after, x_after, color='g')
+            plt.plot(t_curr, x_curr, color='y')
+            plt.scatter(t_v, x_v, marker='x', color='k', s=5)
+            plt.subplot(313)
+            plt.xlabel('time (t)')
+            plt.ylabel('Lateral (m)')
+            y_after = -lat_dis/(2*math.pi) * np.sin(2*math.pi * t_after/dt) + lat_dis * t_after/dt
+            y_curr = -current_lat_dis/(2*math.pi)*np.sin(2*math.pi*t_curr/current_dt)+current_lat_dis*t_curr/current_dt
+            plt.plot(t_after, y_after, color='g')
+            plt.plot(t_curr, y_curr, color='y')
+            plt.scatter(t_v, y_v, marker='x', color='k', s=5)
+            plt.subplot(311)
+            plt.xlabel('Longitudinal (m)')
+            plt.ylabel('Lateral (m)')
+            plt.plot(x_after, y_after, color='g')
+            plt.plot(x_curr, y_curr, color='y')
+            plt.scatter(x_v, y_v, marker='x', color='k', s=5)
+            plt.show()
+
+        # Update model
+        sin_param = {"lat_dis": lat_dis, "lon_dis": lon_dis, "dt": dt}
+        self._model["sin_param"] = sin_param
+        self._sin_points = []
+        print("Sinusoidal Parameters Updated")
+
     # TODO
-    def update_spline_param(self, debug=True):
+    def update_spline_param(self, debug=False):
         if len(self._spline_points) < 50:
             return
 
@@ -243,6 +309,7 @@ class Model:
     # End collecting data
     def end_collect(self):
         self.update_poly_param()
+        self.update_sin_param()
         # self.update_spline_param()
         self.update_safe_distance()
         self.update_target_speed()

@@ -8,7 +8,7 @@ from agents.navigation.agent import Agent, AgentState
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
-from agents.navigation.lange_change import PolyLaneChange, SplineLaneChange
+from agents.navigation.lange_change import PolyLaneChange, SinLaneChange, SplineLaneChange
 from agents.learning.model import Model
 
 
@@ -195,9 +195,14 @@ class LearningAgent(Agent):
             ref = [ref_location.x + wait_dist, ref_location.y, ref_yaw]
 
             # Replace current plan with a lane change plan
+            lane_changer = SinLaneChange(self._world_obj, self._poly_param)
+            lane_change_plan = lane_changer.get_waypoints(ref)
+            self._local_planner.set_local_plan(lane_change_plan)
+            '''
             lane_changer = PolyLaneChange(self._world_obj, self._poly_param)
             lane_change_plan = lane_changer.get_waypoints(ref)
             self._local_planner.set_local_plan(lane_change_plan)
+            '''
             '''
             lane_changer = SplineLaneChange(self._world_obj, self._spline_param)
             # Plan first time without extra point
