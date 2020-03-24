@@ -3,10 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="c119e15e-934b-4699-8824-c50037d4b590" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/agents/learning/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/agents/learning/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/agents/navigation/lange_change.py" beforeDir="false" afterPath="$PROJECT_DIR$/agents/navigation/lange_change.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/agents/navigation/learning_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agents/navigation/learning_agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/model.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/data/model.pickle" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,7 +58,7 @@
       <workItem from="1584171715026" duration="67491000" />
       <workItem from="1584643441679" duration="1202000" />
       <workItem from="1584712639493" duration="12336000" />
-      <workItem from="1585017653592" duration="18851000" />
+      <workItem from="1585017653592" duration="19115000" />
     </task>
     <task id="LOCAL-00001" summary="Update README">
       <created>1583211812412</created>
@@ -261,9 +257,9 @@
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
     <state x="822" y="458" width="459" height="168" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/67.27.1853.1052@67.27.1853.1052" timestamp="1584188975998" />
-    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup" timestamp="1585038140151">
+    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup" timestamp="1585042261253">
       <screen x="67" y="27" width="1853" height="1052" />
     </state>
-    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1585038140151" />
+    <state x="461" y="349" width="672" height="648" key="search.everywhere.popup/67.27.1853.1052@67.27.1853.1052" timestamp="1585042261253" />
   </component>
 </project>
