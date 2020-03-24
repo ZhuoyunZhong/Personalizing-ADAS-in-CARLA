@@ -8,7 +8,7 @@ from agents.navigation.agent import Agent, AgentState
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
-from agents.navigation.lange_change import PolyLaneChange
+from agents.navigation.lange_change import PolyLaneChange, SplineLaneChange
 from agents.learning.model import Model
 
 
@@ -30,6 +30,7 @@ class LearningAgent(Agent):
         self._target_speed = None
         self._local_planner = LocalPlanner(world.player)
         self._poly_param = None
+        self._spline_param = None
         self.update_parameters()
 
         self._block_count = 0  # Temporary
@@ -47,6 +48,7 @@ class LearningAgent(Agent):
         self._safe_distance = self._model.get_parameter("safe_distance")
         self._target_speed = self._model.get_parameter("target_speed")
         self._poly_param = self._model.get_parameter("poly_param")
+        self._spline_param = self._model.get_parameter("spline_param")
         args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01}
         args_longitudinal_dict = {'K_P': 0.3, 'K_I': 0.2, 'K_D': 0.002}
         self._local_planner.init_controller(opt_dict={'target_speed': self._target_speed,
@@ -56,15 +58,15 @@ class LearningAgent(Agent):
     # Start learning by collecting data
     def collect(self):
         dict_param = {}
-        # Collect points while lane changing
-        dict_param.update({"poly_points": [self._vehicle.get_location().x,
-                                           self._vehicle.get_location().y,
-                                           self._vehicle.get_transform().rotation.yaw,
-                                           pygame.time.get_ticks()]})
+        # Collect points while driving
+        dict_param.update({"points": [self._vehicle.get_location().x,
+                                      self._vehicle.get_location().y,
+                                      self._vehicle.get_transform().rotation.yaw,
+                                      pygame.time.get_ticks()]})
 
         # Collect speed while going straight
         v = self._world_obj.player.get_velocity()
-        if abs(v.x) > 4 and abs(v.x)/abs(v.y) > 30:
+        if abs(v.x) > 4 and abs(v.x) / abs(v.y) > 30:
             speed = 3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
             dict_param.update({"speed": speed})
 
@@ -180,7 +182,7 @@ class LearningAgent(Agent):
             control = self._local_planner.run_step(debug=debug)
 
         # When accumulated block time is larger than 3 seconds
-        if self._block_count > 60:
+        if self._block_count > 20:
             # Record original destination
             destination = self._local_planner.get_global_destination()
             # Get lane change start location
@@ -194,10 +196,21 @@ class LearningAgent(Agent):
 
             # Replace current plan with a lane change plan
             lane_changer = PolyLaneChange(self._world_obj, self._poly_param)
-            lane_change_plan = lane_changer.get_waypoints(self._target_speed, ref)
+            lane_change_plan = lane_changer.get_waypoints(ref)
             self._local_planner.set_local_plan(lane_change_plan)
+            '''
+            lane_changer = SplineLaneChange(self._world_obj, self._spline_param)
+            # Plan first time without extra point
+            lane_change_plan = lane_changer.get_waypoints(self._target_speed, ref)
+            # Find global waypoint closest to the end of the plan
+            end_point = self._map.get_waypoint(lane_change_plan[-1][0].transform.location)
+            extras = [[end_point.transform.location.x, end_point.transform.location.y]]
+            # Plan second time with extra global waypoint
+            lane_change_plan = lane_changer.get_waypoints(self._target_speed, ref, extras)
+            self._local_planner.set_local_plan(lane_change_plan)
+            '''
 
-            # Replan with new vehicle position
+            # Replan globally with new vehicle position after lane changing
             new_start = self._map.get_waypoint(lane_change_plan[-1][0].transform.location)
             route_trace = self._trace_route(new_start, destination)
             assert route_trace
