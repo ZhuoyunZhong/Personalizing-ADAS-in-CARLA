@@ -29,7 +29,7 @@ class VehiclePIDController:
         self._lon_controller = PIDLongitudinalController(self._vehicle, **args_longitudinal)
         self._lat_controller = PIDLateralController(self._vehicle, **args_lateral)
 
-    def run_step(self, target_speed, waypoint):
+    def run_step(self, target_speed, target_waypoint, current_waypoint):
         """
         Execute one step of control invoking both lateral and longitudinal PID controllers to reach a target waypoint
         at a given target_speed.
@@ -39,7 +39,7 @@ class VehiclePIDController:
         :return: Carla.VehicleControl() instance
         """
         throttle = self._lon_controller.run_step(target_speed)
-        steering = self._lat_controller.run_step(waypoint)
+        steering = self._lat_controller.run_step(target_waypoint, current_waypoint)
 
         control = carla.VehicleControl()
         control.steer = steering
@@ -86,6 +86,7 @@ class PIDLongitudinalController:
 
         return self._pid_control(target_speed, current_speed)
 
+
     def _pid_control(self, target_speed, current_speed):
         """
         Estimate the throttle of the vehicle based on the PID equations
@@ -131,7 +132,7 @@ class PIDLateralController:
         self._dt = dt
         self._e_buffer = deque(maxlen=10)
 
-    def run_step(self, waypoint):
+    def run_step(self, target_waypoint, current_waypoint):
         """
         Execute one step of lateral control to steer the vehicle towards a certain waypoin.
 
@@ -140,7 +141,8 @@ class PIDLateralController:
             -1 represent maximum steering to left
             +1 maximum steering to right
         """
-        return self._pid_control(waypoint, self._vehicle.get_transform())
+        # return self._pid_control(target_waypoint, self._vehicle.get_transform())
+        return self._stanley_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
 
     def _pid_control(self, waypoint, vehicle_transform):
         """
@@ -151,17 +153,30 @@ class PIDLateralController:
         :return: steering control in the range [-1, 1]
         """
         v_begin = vehicle_transform.location
+
+        print("v_begin:", v_begin)
         v_end = v_begin + carla.Location(x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
                                          y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
-
+        print("v_end:", v_end)
+        
         v_vec = np.array([v_end.x - v_begin.x, v_end.y - v_begin.y, 0.0])
         w_vec = np.array([waypoint.transform.location.x -
                           v_begin.x, waypoint.transform.location.y -
                           v_begin.y, 0.0])
+        
+        print("waypoint:", waypoint)
+        print("v_vec:", v_vec)
+        print("w_vec:", w_vec)
+
         _dot = math.acos(np.clip(np.dot(w_vec, v_vec) /
                                  (np.linalg.norm(w_vec) * np.linalg.norm(v_vec)), -1.0, 1.0))
 
+        print("_dot:", _dot)
+
         _cross = np.cross(v_vec, w_vec)
+
+        print("_cross:", _cross)
+
         if _cross[2] < 0:
             _dot *= -1.0
 
@@ -181,3 +196,73 @@ class PIDLateralController:
 
         return np.clip((self._K_P * _dot) + (self._K_D * _de /
                                              self._dt) + (self._K_I * _ie * self._dt), -1.0, 1.0)
+
+    def _stanley_control(self, target_waypoint, current_waypoint, vehicle_transform):
+        """
+        Estimate the steering angle of the vehicle based on the PID equations
+
+        :param waypoint: target waypoint
+        :param vehicle_transform: current transform of the vehicle
+        :return: steering control in the range [-1, 1]
+        """
+
+        # heading error
+        yaw_path = np.arctan2(target_waypoint.transform.location.y-current_waypoint.transform.location.y, target_waypoint.transform.location.x - current_waypoint.transform.location.x)
+        
+        v_begin = vehicle_transform.location
+
+        v_end = v_begin + carla.Location(x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
+                                         y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
+
+        # vehicle heading vector
+        v_vec = np.array([v_end.x - v_begin.x, v_end.y - v_begin.y, 0.0])
+        
+        yaw_vehicle = np.arctan2(v_vec[1], v_vec[0])
+
+        yaw_diff = yaw_path - yaw_vehicle
+
+        # Wrapping the yaw_diff
+        if yaw_diff > np.pi:
+            yaw_diff -= 2 * np.pi
+        if yaw_diff < - np.pi:
+            yaw_diff += 2 * np.pi
+
+        # Calculate cross-track error
+        cross_err_current = (v_begin.x - current_waypoint.transform.location.x)**2 +  (v_begin.y - current_waypoint.transform.location.y)**2 
+        cross_err_target = (v_begin.x - target_waypoint.transform.location.x)**2 +  (v_begin.y - target_waypoint.transform.location.y)**2 
+        crosstrack_error = np.min([cross_err_current, cross_err_target]) 
+
+
+        yaw_cross_track = np.arctan2(v_begin.y-target_waypoint.transform.location.y, v_begin.x-target_waypoint.transform.location.x)
+
+        yaw_path2ct = yaw_path - yaw_cross_track
+
+        if yaw_path2ct > np.pi:
+            yaw_path2ct -= 2 * np.pi
+        if yaw_path2ct < - np.pi:
+            yaw_path2ct += 2 * np.pi
+        if yaw_path2ct > 0:
+            crosstrack_error = abs(crosstrack_error)
+        else:
+            crosstrack_error = - abs(crosstrack_error)
+
+        v = get_speed(self._vehicle)
+
+        k_e = 10
+        k_v = 10
+
+        print("crosstrack_error: ", crosstrack_error)
+
+        yaw_diff_crosstrack = np.arctan(k_e * crosstrack_error / (k_v + v))
+
+        steer_expect = yaw_diff + yaw_diff_crosstrack
+        
+        if steer_expect > np.pi:
+            steer_expect -= 2 * np.pi
+        if steer_expect < - np.pi:
+            steer_expect += 2 * np.pi
+        
+        steer_expect = min(1.22, steer_expect)
+        steer_expect = max(-1.22, steer_expect)
+
+        return steer_expect

@@ -67,7 +67,7 @@ class World(object):
         # Get a random blueprint from the filter
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
         blueprint.set_attribute('role_name', 'ego')
-        blueprint.set_attribute('color', '0, 0, 0')
+        # blueprint.set_attribute('color', '0, 0, 0')
         # Spawn the player.
         if self.player is not None:
             self.destroy()
