@@ -245,9 +245,11 @@ class LearningAgent(Agent):
             # Get lane change start location
             ref_location = self._world_obj.player.get_location()
             ref_yaw = self._world_obj.player.get_transform().rotation.yaw
+
             if self._local_planner.waypoint_buffer:
                 waypoint = self._local_planner.waypoint_buffer[-1][0]
                 ref_location = waypoint.transform.location
+            
             wait_dist = 3.0  # need some time to plan
             ref = [ref_location.x + wait_dist, ref_location.y, ref_yaw]
 

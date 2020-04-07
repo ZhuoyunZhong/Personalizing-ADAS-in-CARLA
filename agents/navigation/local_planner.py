@@ -3,6 +3,7 @@
 from enum import Enum
 from collections import deque
 import random
+from matplotlib import pyplot as plt
 
 import carla
 from agents.navigation.controller import VehiclePIDController
@@ -62,6 +63,7 @@ class LocalPlanner(object):
         self.target_waypoint = None
         self._vehicle_controller = None
         self._global_plan = None
+        
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
         self._buffer_size = 5
@@ -115,6 +117,8 @@ class LocalPlanner(object):
                 args_longitudinal_dict = opt_dict['longitudinal_control_dict']
 
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+
+
         self._vehicle_controller = VehiclePIDController(self._vehicle,
                                                         args_lateral=args_lateral_dict,
                                                         args_longitudinal=args_longitudinal_dict)
@@ -125,9 +129,10 @@ class LocalPlanner(object):
         self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
 
         self._target_road_option = RoadOption.LANEFOLLOW
+        
         # fill waypoint trajectory queue
         self._compute_next_waypoints(k=200)
-
+            
     def set_speed(self, speed):
         """
         :param speed: new target speed in Km/h
@@ -147,7 +152,7 @@ class LocalPlanner(object):
         for _ in range(k):
             last_waypoint = self._waypoints_queue[-1][0]
             next_waypoints = list(last_waypoint.next(self._sampling_radius))
-
+            
             if len(next_waypoints) == 1:
                 # only one option available ==> lanefollowing
                 next_waypoint = next_waypoints[0]
@@ -219,13 +224,16 @@ class LocalPlanner(object):
                     break
 
         # Control Vehicle
+
         # current vehicle waypoint
         vehicle_transform = self._vehicle.get_transform()
         self._current_waypoint = self._map.get_waypoint(vehicle_transform.location)
+        
         # target waypoint
         self.target_waypoint, self._target_road_option = self.waypoint_buffer[0]
+        
         # move using PID controllers
-        control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
+        control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint, self._current_waypoint)
 
         self.update_buffer()
 
