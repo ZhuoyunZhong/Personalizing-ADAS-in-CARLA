@@ -18,6 +18,10 @@ except IndexError:
 import carla
 import pygame
 
+from manual_control import *
+from sensors import *
+from hud import *
+
 try:
     sys.path.append('../')
 except IndexError:
@@ -25,10 +29,6 @@ except IndexError:
 from agents.navigation.roaming_agent import RoamingAgent
 from agents.navigation.basic_agent import BasicAgent
 from agents.navigation.learning_agent import LearningAgent
-
-from manual_control import *
-from sensors import *
-from hud import *
 
 
 class World(object):
@@ -49,12 +49,18 @@ class World(object):
         self.obstacle_sensor = None         # sensors
         self.collision_sensor = None
         self.gnss_sensor = None
+        # camera manager
         self.main_rgb_camera = None
         self.depth_camera = None
         self.segmentation_camera = None
         self.lidar = None
-
+        # radar set
         self.front_radar = None
+        self.back_radar = None
+        self.left_front_radar = None
+        self.right_front_radar = None
+        self.left_back_radar = None
+        self.right_back_radar = None
         # Agent
         self.agent_name = agent_str
         self.agent = None
@@ -97,8 +103,13 @@ class World(object):
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
 
-        self.front_radar = RadarSensor(self.player, self.hud, x=2.5, z=1.0, yaw=0.0)
-
+        self.front_radar = RadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0)
+        self.back_radar = RadarSensor(self.player, self.hud, x=-2.5, y=0.0, z=1.0, yaw=180.0)
+        self.left_front_radar = RadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-30.0)
+        self.left_back_radar = RadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-150.0)
+        #self.right_front_radar = RadarSensor(self.player, self.hud, x=2.5, y=0.5, z=1.0, yaw=20.0)
+        #self.right_back_radar = RadarSensor(self.player, self.hud, x=-2.5, y=0.5, z=1.0, yaw=140.0)
+        
         # Reset agent
         if self.agent_name == "Learning":
             self.agent = LearningAgent(self)
@@ -150,7 +161,12 @@ class World(object):
             self.obstacle_sensor.sensor,
             self.collision_sensor.sensor,
             self.gnss_sensor.sensor,
-            self.front_radar,
+            self.front_radar.sensor,
+            self.back_radar.sensor,
+            self.left_front_radar.sensor,
+            self.left_back_radar.sensor,
+            #self.right_front_radar.sensor,
+            #self.right_back_radar.sensor,
             self.player]
         for actor in actors:
             if actor is not None:

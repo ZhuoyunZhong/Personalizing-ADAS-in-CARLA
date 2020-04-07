@@ -53,7 +53,6 @@ class PolyLaneChange:
 class SinLaneChange:
     def __init__(self, world, param):
         self._world_obj = world
-        self._map = self._world_obj.world.get_map()
 
         self._lon_dis = param['lon_dis']
         self._lat_dis = param['lat_dis']

@@ -31,12 +31,12 @@ class Model:
         # if file doesn't exist, create one
         if not path.exists(self.path):
             # Default model
-            model = {"safe_distance": 12.0, "target_speed": 28.0,
-                     "poly_param": {"lon_dis": 30, "lat_dis": -3.5, "dt": 4.0,
+            model = {"safe_distance": 12.0, "target_speed": 25.0,
+                     "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
-                     "sin_param": {"lon_dis": 30, "lat_dis": -3.5, "dt": 4.0},
-                     "spline_param": {"lon_dis": 30, "lat_dis": -3.5,
+                     "sin_param": {"lon_dis": 27.8, "lat_dis": -3.5, "dt": 4.0},
+                     "spline_param": {"lon_dis": 30.0, "lat_dis": -3.5,
                                       "tck": splrep([0, 1, 2, 28, 29, 30], [0, 0, 0, -3.5, -3.5, -3.5])}}
             with open(self.path, 'wb') as f:
                 pickle.dump(model, f)

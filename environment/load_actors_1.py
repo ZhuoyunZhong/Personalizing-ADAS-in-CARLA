@@ -24,7 +24,7 @@ def spawn_surrounding_vehicles(world, blueprint_library):
     bp_lib = []
     bp_lib.extend(blueprint_library.filter('vehicle.nissan.*'))
     bp_lib.extend(blueprint_library.filter('vehicle.audi.*'))
-    bp_lib.extend(blueprint_library.filter('vehicle.tesla.*'))
+    bp_lib.extend(blueprint_library.filter('vehicle.tesla.model3'))
 
     # Set vehicles spawn location
     transform_front = carla.Transform(carla.Location(x=65, y=7.8, z=0.1))

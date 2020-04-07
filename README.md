@@ -2,57 +2,70 @@
 
 This project aims to design a lane changing method for autonomous vehicles with the self-driving cars simulator CARLA.
 
-### Demonstration
+## Demonstration
+
+![Demo](./demo/default_model.gif)
 
 
-### Platform
+## Platform
 
 Ubuntu 18.04
 [CARLA](http://carla.org/) 0.9.8
 
-#### Carla Installation Steps
-Add the CARLA 0.9.8 repository to the system.
-```
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 304F9BC29914A77D &&
-sudo add-apt-repository "deb [arch=amd64 trusted=yes] http://dist.carla.org/carla-0.9.8/ all main"
-```
+## Carla Simulator Installation
+Go to official [Carla Releases](https://github.com/carla-simulator/carla/releases) Github page.
 
-Install CARLA and check for the installation in the /opt/ folder.
+Download **[Linux] CARLA 0.9.8**, unzip the file and rename the folder as **Carla_Simulator**. Additional maps are optional.
+
+Put **Carla_Simulator** folder and **this repository** folder in the same folder. So the folder structure should look like:
 
 ```
-sudo apt-get update
-sudo apt-get install carla
-cd /opt/carla
+Carla                              
+├── Assistive-Driving-in-CARLA     # This repository
+│   ├── agents                     # Self-driving and Personalization module
+│   │   ├── ...
+│   ├── data                       # Useful data
+│   │   ├── ...
+│   ├── demo                       # Demonstration for README
+│   │   ├── ...
+│   ├── environment                # Scenes and different scenes set up
+│   │   ├── ...
+│   ├── LICENSE                    
+│   ├── README.md
+└── CARLA_Simulator                # Carla Simulator of suggested version    
+    ├── ...                    
 ```
 
-### Run
+## Run
 
 1.  `numpy` and `pygame` should be correctly installed
 
-2. Put **Carla_Simulator** folder and **this repository** folder in the same folder.
+2. Go to **Carla_Simulator** folder,
 
-3. cd to Carla_Simulator folder
+   `cd Carla/Carla_Simulator` 
 
-   run CARLA in Low Graphic Quality 
+   run CARLA in Low Graphic Quality
 
-   `  ./CarlaUE4.sh -quality-level=Low`
+   `./CarlaUE4.sh -quality-level=Low`
 
-   or off-screen mode
+   or off-screen mode.
 
    `DISPLAY= ./CarlaUE4.sh -opengl`
 
-4. cd to the **environment folder** of **this repository** . There are options for generating vehicles.
+3. Go to the **environment folder** of **this repository**. 
 
-   To generate only the ego vehicle
-   
+   `cd Carla/Assistive-Driving-in-CARLA/environment `
+
+   There are options for generating different scenes. To generate only the ego vehicle:
+
    `python ego_vehicle.py`
-   
-   To generate scene 1 where one vehicle is in front of the ego vehicle
-   
+
+   To generate scene 1 where one vehicle is in front of the ego vehicle:
+
    `python run.py -s 1`
-   
-   To generate scene 2 where multiple vehicles are surrounding the ego vehicle
-   
+
+   To generate scene 2 where multiple vehicles are surrounding the ego vehicle:
+
    `python run.py -s 2` 
-   
-5.  The vehicle is initialized with autopilot mode **on**. To switch to manual control, press `p`. To start or end the learning process, press `l` and drive the vehicle. After learning, it requires to regenerate the scene in order to see the learning result.
+
+4. The vehicle is initialized with autopilot mode **on**. To switch to manual control, press `p`. To start or end the learning process, press `l` and drive the vehicle. After learning, it requires to regenerate the scene in order to see the learning result (for now).

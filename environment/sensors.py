@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # Sensor class
-
 import glob
 import os
 import sys
@@ -32,14 +31,18 @@ from agents.tools.misc import *
 
 # Radar
 class RadarSensor(object):
-    def __init__(self, parent_actor, hud, x=2.5, z=1.0, yaw=0.0):
+    def __init__(self, parent_actor, hud, x=2.5, y=0.0, z=1.0, yaw=0.0):
         self._parent = parent_actor
         world = self._parent.get_world()
         radar_sensor_bp = world.get_blueprint_library().find('sensor.other.radar')
-        radar_sensor_bp.set_attribute('range', '20')
-        radar_sensor_bp.set_attribute('points_per_second', '500')
-        self.sensor = world.try_spawn_actor(radar_sensor_bp, carla.Transform(location=carla.Location(x=x, z=z),
-                                                                             rotation=carla.Rotation(yaw=yaw)),
+        radar_sensor_bp.set_attribute('range', '25')
+        radar_sensor_bp.set_attribute('horizontal_fov', '30')
+        radar_sensor_bp.set_attribute('points_per_second', '120')
+        
+        self._location = carla.Location(x=x, y=y, z=z)
+        self._rotation = carla.Rotation(yaw=yaw)
+        self._transform = carla.Transform(location=self._location, rotation=self._rotation)
+        self.sensor = world.try_spawn_actor(radar_sensor_bp, self._transform,
                                             attach_to=self._parent)
         self.points = []
         self.detected = False
@@ -58,66 +61,67 @@ class RadarSensor(object):
         return max(min_v, min(value, max_v))
     
     @staticmethod
-    def _on_detect(weak_self, event):
+    def _on_detect(weak_self, event, debug=False):
         self = weak_self()
         if not self:
             return
-        '''
-        # To get a numpy [[vel, altitude, azimuth, depth],...[,,,]]:
-        points = np.frombuffer(radar_data.raw_data, dtype=np.dtype('f4'))
-        points = np.reshape(points, (len(radar_data), 4))
-        '''
-        # Get radar and vehicle transform
-        radar_pos = event.transform.location
-        radar_rot = event.transform.rotation
+        
+        if debug:
+            # Get radar transform
+            radar_pos = event.transform.location
+            radar_rot = event.transform.rotation
+
+        # Get vehicle transform
         vv = self._parent.get_velocity()
         veh_vel = carla.Vector3D(x=vv.x, y=vv.y, z=vv.z)
         v2w_pos_transform = self._parent.get_transform()
-        v2w_vel_transform = carla.Transform(carla.Location(), v2w_pos_transform.rotation)
 
+        # Ignore points with radar velocity caused by moving vehicles
+        # Which are basically static points
+        ## TODO This method still cannot avoid all the static points ###
+        vel_transform = carla.Transform(carla.Location(), self._rotation)
+        moving_vel = transform_to_world(vel_transform, veh_vel, inverse=True)
+        
         self.detected = False
         # For each point
         for detect in event:
+            # Calculate actual velocity of the point
+            act_vel = detect.velocity + moving_vel.x
+            if abs(act_vel) < 3:
+                continue
+            
             # Get point transform
             azi = math.degrees(detect.azimuth)
             alt = math.degrees(detect.altitude)
-            p2w_transform = carla.Transform(carla.Location(), carla.Rotation(
-                                pitch=radar_rot.pitch + alt, yaw=radar_rot.yaw + azi,
-                                roll=radar_rot.roll))
-
-            # Get point position and velocity in world coordinate
-            draw_vec = carla.Vector3D(x=detect.depth - 0.25)
+            p2v_transform = carla.Transform(self._location, carla.Rotation(
+                                            pitch=self._rotation.pitch + alt, 
+                                            yaw=self._rotation.yaw + azi,
+                                            roll=self._rotation.roll))
+            # Get point position in vehicle coordinate
             pos_vec = carla.Vector3D(x=detect.depth)
-            vel_vec = carla.Vector3D(x=detect.velocity)
-            draw_vec = transform_to_world(p2w_transform, draw_vec) + radar_pos
-            pos_vec = transform_to_world(p2w_transform, pos_vec) + radar_pos
-            vel_vec = transform_to_world(p2w_transform, vel_vec)
+            rel_pos = transform_to_world(p2v_transform, pos_vec)
 
-            # Get point position and velocity in vehicle coordinate
-            rel_pos = transform_to_world(v2w_pos_transform, pos_vec, inverse=True)
-            point_vel_vec = transform_to_world(v2w_vel_transform, vel_vec, inverse=True)
-            veh_vel_vec = transform_to_world(v2w_vel_transform, veh_vel, inverse=True)
-            rel_vel = point_vel_vec + veh_vel_vec
-
-            # Track the points that are not gound and have high rel_vel
-            if abs(rel_pos.z) > 0.5 and \
-              (abs(rel_vel.x) > 4 or abs(rel_vel.y) > 2 or abs(rel_vel.z) > 2):
-                # Store point
-                self.points.append([rel_pos.x, rel_pos.y, rel_pos.z, rel_vel.x, rel_vel.y, rel_vel.z])
-
-                # Draw point
+            # Store point
+            self.points.append([rel_pos.x, rel_pos.y, rel_pos.z, act_vel])
+            
+            # Draw point
+            if debug:
+                p2w_transform = carla.Transform(radar_pos, carla.Rotation(
+                                                pitch=radar_rot.pitch + alt, yaw=radar_rot.yaw + azi,
+                                                roll=radar_rot.roll))
+                draw_vec = transform_to_world(p2w_transform, carla.Vector3D(x=detect.depth-0.25))
                 norm_velocity = detect.velocity / self.velocity_range # range [-1, 1]
                 r = int(self.clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
                 g = int(self.clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
                 b = int(abs(self.clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
                 self.debug.draw_point(draw_vec, size=0.075, 
                     life_time=0.06,persistent_lines=False, color=carla.Color(r, g, b))
-
+            
         # Store detected object
-        if self.points:
-            rel = np.sum(np.array(self.points), axis=0) / len(self.points)
+        if len(self.points) > 1:
+            rel = np.mean(np.array(self.points), axis=0)
             self.rel_pos = rel[0:3]
-            self.rel_vel = rel[3:6]
+            self.rel_vel = rel[3:4]
             self.detected = True
             self.points = []
 

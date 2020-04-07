@@ -23,6 +23,8 @@ class AgentState(Enum):
     NAVIGATING = 1
     BLOCKED_BY_VEHICLE = 2
     BLOCKED_RED_LIGHT = 3
+    PREPARE_LANE_CHANGING = 4
+    LANE_CHANGING = 5
 
 
 class Agent(object):
