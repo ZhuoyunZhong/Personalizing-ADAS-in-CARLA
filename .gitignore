@@ -1,5 +1,6 @@
-# Ignore pyc
+# Ignore pyc and cache
 *.pyc
+__pycache__/
 
 # Ignore idea
 .idea/*
