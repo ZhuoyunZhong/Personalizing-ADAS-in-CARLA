@@ -20,6 +20,47 @@ def get_poly_y(x, param):
     return y
 
 
+def transform_to_world(local_frame, vector, inverse=False):
+    """
+    Perform a transform from local frame to world frame
+    :param local_frame: local frame
+    :param vector: point coordinate with respect to origin_frame
+    :param inverse: is inverse?
+    :return: a CarlaVector3
+    """
+    matrix = np.eye(4)
+    vector4 = np.array([vector.x, vector.y, vector.z, 1])
+
+    rotation = local_frame.rotation
+    translation = local_frame.location
+
+    cy = math.cos(np.radians(rotation.yaw))
+    sy = math.sin(np.radians(rotation.yaw))
+    cr = math.cos(np.radians(rotation.roll))
+    sr = math.sin(np.radians(rotation.roll))
+    cp = math.cos(np.radians(rotation.pitch))
+    sp = math.sin(np.radians(rotation.pitch))
+    matrix[0, 3] = translation.x
+    matrix[1, 3] = translation.y
+    matrix[2, 3] = translation.z
+    matrix[0, 0] = cp * cy
+    matrix[0, 1] = cy * sp * sr - sy * cr
+    matrix[0, 2] = -(cy * sp * cr + sy * sr)
+    matrix[1, 0] = sy * cp
+    matrix[1, 1] = sy * sp * sr + cy * cr
+    matrix[1, 2] = cy * sr - sy * sp * cr
+    matrix[2, 0] = sp
+    matrix[2, 1] = -(cp * sr)
+    matrix[2, 2] = cp * cr
+
+    if inverse:
+        matrix = np.linalg.inv(matrix)
+
+    vector_new = np.matmul(matrix, vector4)
+    return carla.Vector3D(x=vector_new[0], y=vector_new[1], z=vector_new[2])
+
+
+
 def draw_waypoints(world, waypoints, z=0.5):
     """
     Draw a list of waypoints at a certain height given in z.

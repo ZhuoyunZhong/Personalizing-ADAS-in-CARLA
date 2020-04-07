@@ -43,7 +43,7 @@ class World(object):
         self._weather_presets = None
         self.find_weather_presets()
         # Ego and sensors
-        self.spawn_loc = [50, 7.5, 0.5]     # spawn location
+        self._spawn_loc = [50, 7.5, 0.5]    # spawn location
         self._actor_filter = actor_filter   # vehicle type
         self.player = None                  # ego vehicle
         self.obstacle_sensor = None         # sensors
@@ -53,6 +53,8 @@ class World(object):
         self.depth_camera = None
         self.segmentation_camera = None
         self.lidar = None
+
+        self.front_radar = None
         # Agent
         self.agent_name = agent_str
         self.agent = None
@@ -71,12 +73,12 @@ class World(object):
         # Spawn the player.
         if self.player is not None:
             self.destroy()
-            spawn_point = carla.Transform(carla.Location(x=self.spawn_loc[0],
-                                                         y=self.spawn_loc[1], z=self.spawn_loc[2]))
+            spawn_point = carla.Transform(carla.Location(x=self._spawn_loc[0],
+                                                         y=self._spawn_loc[1], z=self._spawn_loc[2]))
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         while self.player is None:
-            spawn_point = carla.Transform(carla.Location(x=self.spawn_loc[0],
-                                                         y=self.spawn_loc[1], z=self.spawn_loc[2]))
+            spawn_point = carla.Transform(carla.Location(x=self._spawn_loc[0],
+                                                         y=self._spawn_loc[1], z=self._spawn_loc[2]))
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
 
         # Set up the sensors.
@@ -94,6 +96,8 @@ class World(object):
         self.obstacle_sensor = ObstacleSensor(self.player, self.hud)
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
+
+        self.front_radar = RadarSensor(self.player, self.hud, x=2.5, z=1.0, yaw=0.0)
 
         # Reset agent
         if self.agent_name == "Learning":
@@ -146,6 +150,7 @@ class World(object):
             self.obstacle_sensor.sensor,
             self.collision_sensor.sensor,
             self.gnss_sensor.sensor,
+            self.front_radar,
             self.player]
         for actor in actors:
             if actor is not None:
@@ -225,8 +230,8 @@ def main():
                            help='TCP port to listen to (default: 2000)')
     argparser.add_argument('--res', metavar='WIDTH x HEIGHT', default='1280x720',
                            help='window resolution')
-    argparser.add_argument('--filter', metavar='PATTERN', default='vehicle.tesla.*',
-                           help='actor filter (default: "vehicle.tesla.*")')
+    argparser.add_argument('--filter', metavar='PATTERN', default='vehicle.tesla.model3',
+                           help='actor filter (default: "vehicle.tesla.model3")')
     argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic", "Learning"], default="Learning",
                            help="select which agent to run")
     args = argparser.parse_args()
