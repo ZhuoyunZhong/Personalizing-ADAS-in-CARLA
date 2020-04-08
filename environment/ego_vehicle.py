@@ -43,7 +43,7 @@ class World(object):
         self._weather_presets = None
         self.find_weather_presets()
         # Ego and sensors
-        self._spawn_loc = [50, 7.5, 0.5]    # spawn location
+        self._spawn_loc = [25, 7.5, 0.5]    # spawn location
         self._actor_filter = actor_filter   # vehicle type
         self.player = None                  # ego vehicle
         self.obstacle_sensor = None         # sensors

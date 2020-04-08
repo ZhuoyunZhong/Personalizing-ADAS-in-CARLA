@@ -244,25 +244,26 @@ class PIDLateralController:
         if yaw_path2ct > 0:
             crosstrack_error = abs(crosstrack_error)
         else:
-            crosstrack_error = - abs(crosstrack_error)
+            crosstrack_error = -abs(crosstrack_error)
 
         v = get_speed(self._vehicle)
 
-        k_e = 10
-        k_v = 10
+        k_e = 3
+        k_v = 0
 
-        print("crosstrack_error: ", crosstrack_error)
+        #print("crosstrack_error: ", crosstrack_error)
 
         yaw_diff_crosstrack = np.arctan(k_e * crosstrack_error / (k_v + v))
 
         steer_expect = yaw_diff + yaw_diff_crosstrack
-        
+        steer_expect = min(2, steer_expect)
+        steer_expect = max(-2, steer_expect)
+
         if steer_expect > np.pi:
             steer_expect -= 2 * np.pi
         if steer_expect < - np.pi:
             steer_expect += 2 * np.pi
+        print("steer expect: ", steer_expect)
         
-        steer_expect = min(1.22, steer_expect)
-        steer_expect = max(-1.22, steer_expect)
 
         return steer_expect

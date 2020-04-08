@@ -88,7 +88,7 @@ class LocalPlanner(object):
         """
         # default params
         self._dt = 1.0 / 20.0      # 1/F
-        self._target_speed = 20.0  # Km/h
+        self._target_speed = 30.0  # Km/h
         self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         args_lateral_dict = {

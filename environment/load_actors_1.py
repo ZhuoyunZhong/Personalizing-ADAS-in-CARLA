@@ -27,7 +27,7 @@ def spawn_surrounding_vehicles(world, blueprint_library):
     bp_lib.extend(blueprint_library.filter('vehicle.tesla.model3'))
 
     # Set vehicles spawn location
-    transform_front = carla.Transform(carla.Location(x=65, y=7.8, z=0.1))
+    transform_front = carla.Transform(carla.Location(x=40, y=7.5, z=0.1))
     transform_list = [transform_front]
 
     for vehicle_i in range(len(transform_list)):
@@ -66,10 +66,11 @@ def load_actors():
 
         # Spawn actors
         vehicle_list = spawn_surrounding_vehicles(world, blueprint_library)
-
+        print("vehicle list: ", vehicle_list)
         time.sleep(0.5)
         for v in vehicle_list:
             v.set_autopilot(True)
+            print("Neighbor vehicle set to Autopilot mode.")
 
         # Keep the actors running
         while True:
