@@ -43,7 +43,7 @@ class World(object):
         self._weather_presets = None
         self.find_weather_presets()
         # Ego and sensors
-        self._spawn_loc = [25, 7.5, 0.5]    # spawn location
+        self._spawn_loc = [50, 7.5, 0.5]    # spawn location
         self._actor_filter = actor_filter   # vehicle type
         self.player = None                  # ego vehicle
         self.obstacle_sensor = None         # sensors
@@ -91,24 +91,37 @@ class World(object):
         # Keep same camera config if the camera manager exists.
         self.main_rgb_camera = CameraManager(self.player, self.hud)
         self.main_rgb_camera.set_sensor(0, notify=False, display_camera=True)
-        self.depth_camera = CameraManager(self.player, self.hud)
-        self.depth_camera.set_sensor(3, notify=False, display_camera=False)
-        self.segmentation_camera = CameraManager(self.player, self.hud)
-        self.segmentation_camera.set_sensor(5, notify=False, display_camera=False)
-        self.lidar = CameraManager(self.player, self.hud)
-        self.lidar.transform_index = 1
-        self.lidar.set_sensor(6, notify=False, display_camera=False)
+        #self.depth_camera = CameraManager(self.player, self.hud)
+        #self.depth_camera.set_sensor(3, notify=False)
+        #self.segmentation_camera = CameraManager(self.player, self.hud)
+        #self.segmentation_camera.set_sensor(5, notify=False)
+        #self.lidar = CameraManager(self.player, self.hud)
+        #self.lidar.transform_index = 1
+        #self.lidar.set_sensor(6, notify=False)
 
         self.obstacle_sensor = ObstacleSensor(self.player, self.hud)
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
+        
+        self.front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0)
+        self.left_front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-30.0)
+        self.left_back_radar = FakeRadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-150.0)
+        '''
+        # Radars are implemented but not used for high computing resources required
+        self.front_radar = RadarSensor(self.player, self.hud, rr='20',
+                                       x=2.5, y=0.0, z=1.0, yaw=0.0)
+        self.left_front_radar = RadarSensor(self.player, self.hud, hf='40', pps='1000',
+                                            x=2.5, y=-0.8, z=1.0, yaw=-25.0)
+        self.left_back_radar = RadarSensor(self.player, self.hud, hf='40', pps='1000', 
+                                           x=-2.5, y=-0.8, z=1.0, yaw=-155.0)
+        self.back_radar = RadarSensor(self.player, self.hud, rr='20',
+                                       x=-2.5, y=0.0, z=1.0, yaw=180.0)
+        self.right_front_radar = RadarSensor(self.player, self.hud, hf='40', pps='800', 
+                                           x=2.5, y=0.5, z=1.0, yaw=20.0)
+        self.right_back_radar = RadarSensor(self.player, self.hud, hf='40', pps='800', 
+                                           x=-2.5, y=0.5, z=1.0, yaw=140.0)
+        '''
 
-        self.front_radar = RadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0)
-        self.back_radar = RadarSensor(self.player, self.hud, x=-2.5, y=0.0, z=1.0, yaw=180.0)
-        self.left_front_radar = RadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-30.0)
-        self.left_back_radar = RadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-150.0)
-        #self.right_front_radar = RadarSensor(self.player, self.hud, x=2.5, y=0.5, z=1.0, yaw=20.0)
-        #self.right_back_radar = RadarSensor(self.player, self.hud, x=-2.5, y=0.5, z=1.0, yaw=140.0)
         
         # Reset agent
         if self.agent_name == "Learning":
@@ -155,16 +168,15 @@ class World(object):
     def destroy(self):
         actors = [
             self.main_rgb_camera.sensor,
-            self.depth_camera.sensor,
-            self.segmentation_camera.sensor,
-            self.lidar.sensor,
+            #self.depth_camera.sensor,
+            #self.segmentation_camera.sensor,
+            #self.lidar.sensor,
             self.obstacle_sensor.sensor,
             self.collision_sensor.sensor,
-            self.gnss_sensor.sensor,
-            self.front_radar.sensor,
-            self.back_radar.sensor,
-            self.left_front_radar.sensor,
-            self.left_back_radar.sensor,
+            self.front_radar,
+            #self.back_radar.sensor,
+            self.left_front_radar,
+            self.left_back_radar,
             #self.right_front_radar.sensor,
             #self.right_back_radar.sensor,
             self.player]
