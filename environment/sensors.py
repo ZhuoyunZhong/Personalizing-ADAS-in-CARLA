@@ -29,32 +29,121 @@ except IndexError:
 from agents.tools.misc import *
 
 
-# Radar
-class RadarSensor(object):
-    def __init__(self, parent_actor, hud, x=2.5, y=0.0, z=1.0, yaw=0.0):
+# Fake Radar
+class FakeRadarSensor(object):
+    def __init__(self, parent_actor, hud, debug=True, 
+                 x=2.5, y=0.0, z=1.0, yaw=0.0):
         self._parent = parent_actor
-        world = self._parent.get_world()
-        radar_sensor_bp = world.get_blueprint_library().find('sensor.other.radar')
-        radar_sensor_bp.set_attribute('range', '25')
-        radar_sensor_bp.set_attribute('horizontal_fov', '30')
-        radar_sensor_bp.set_attribute('points_per_second', '120')
-        
-        self._location = carla.Location(x=x, y=y, z=z)
-        self._rotation = carla.Rotation(yaw=yaw)
-        self._transform = carla.Transform(location=self._location, rotation=self._rotation)
-        self.sensor = world.try_spawn_actor(radar_sensor_bp, self._transform,
-                                            attach_to=self._parent)
-        self.points = []
+        self.location = carla.Location(x=x, y=y, z=z)
+        self.rotation = carla.Rotation(yaw=yaw)
+        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        # Three sets of obstacle sensors
+        self.sensor1 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw)
+        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-15)
+        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+15)
+        self._sensor_list = [self.sensor1, self.sensor2, self.sensor3]
+        # Useful class variables
         self.detected = False
         self.rel_pos = None
         self.rel_vel = None
-        self.velocity_range = 15
-        self.debug = world.debug
+        self._obstacle = None
+        self._distance = None
+        # Debug
+        self._velocity_range = 8
+        self._debug = debug
+        self._draw = self._parent.get_world().debug
+        
+        # We need to pass the lambda a weak reference to self to avoid circular
+        # reference.
+        weak_self = weakref.ref(self)
+        self.sensor1.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 0))
+        self.sensor2.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, -1))
+        self.sensor3.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 1))
+
+    @staticmethod
+    def _on_detect(weak_self, event, num):
+        self = weak_self()
+        if not self:
+            return
+
+        if self.detected:
+            return
+
+        # Event values
+        self._obstacle = event.other_actor
+        self._distance = event.distance
+
+        # Only track other dynamic objects
+        if "static" in self._obstacle.type_id or \
+            self._obstacle.id == self._parent.id:
+            return
+        self.detected = True
+
+        self.rotation = carla.Rotation(yaw=self.rotation.yaw + 15*num)
+        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+
+        # relative position
+        veh_tran = self._parent.get_transform()
+        obs_pos = self._obstacle.get_location()
+        rel_pos = transform_to_world(veh_tran, obs_pos, inverse=True)
+        self.rel_pos = [rel_pos.x, rel_pos.y, rel_pos.z]
+
+        # velocity
+        actor_vel = self._obstacle.get_velocity()
+        vel_vec = carla.Vector3D(x=actor_vel.x, y=actor_vel.y, z=actor_vel.z)
+        rel_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
+                                     vel_vec, inverse=True)
+        self.rel_vel = rel_vel.x
+
+        if self._debug:
+            draw_vec = carla.Vector3D(x=obs_pos.x, y=obs_pos.y, z=obs_pos.z+1)
+            veh_vel = self._parent.get_velocity()
+            veh_vel_vec = carla.Vector3D(x=veh_vel.x, y=veh_vel.y, z=veh_vel.z)
+            rel_veh_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
+                                             veh_vel_vec, inverse=True)
+            norm_velocity = (self.rel_vel - rel_veh_vel.x) / self._velocity_range # range [-1, 1]
+            r = int(self.clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
+            g = int(self.clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
+            b = int(abs(self.clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
+            self._draw.draw_point(draw_vec, size=0.1,
+                life_time=0.5,persistent_lines=False, color=carla.Color(r, g, b))
+
+    @staticmethod
+    def clamp(min_v, max_v, value):
+        return max(min_v, min(value, max_v))
+    
+    def destroy(self):
+        for sensorn in self._sensor_list:
+            sensorn.sensor.destroy()
+
+
+# Radar
+class RadarSensor(object):
+    def __init__(self, parent_actor, hud, debug=True,
+                 rr='25', hf='30', pps='400', x=2.5, y=0.0, z=1.0, yaw=0.0):
+        self._parent = parent_actor
+        world = self._parent.get_world()
+        radar_sensor_bp = world.get_blueprint_library().find('sensor.other.radar')
+        radar_sensor_bp.set_attribute('range', rr)
+        radar_sensor_bp.set_attribute('horizontal_fov', hf)
+        radar_sensor_bp.set_attribute('points_per_second', pps)
+        
+        self.location = carla.Location(x=x, y=y, z=z)
+        self.rotation = carla.Rotation(yaw=yaw)
+        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        self.sensor = world.try_spawn_actor(radar_sensor_bp, self.transform,
+                                            attach_to=self._parent)
+        self.detected = False
+        self.rel_pos = None
+        self.rel_vel = None
+        self._velocity_range = 15
+        self._debug = debug
+        self._draw = world.debug
 
         # We need to pass the lambda a weak reference to self to avoid circular
         # reference.
         weak_self = weakref.ref(self)
-        self.sensor.listen(lambda event: RadarSensor._on_detect(weak_self, event))
+        self.sensor.listen(lambda event: RadarSensor._on_detect(weak_self, event, debug))
 
     @staticmethod
     def clamp(min_v, max_v, value):
@@ -69,7 +158,6 @@ class RadarSensor(object):
         if debug:
             # Get radar transform
             radar_pos = event.transform.location
-            radar_rot = event.transform.rotation
 
         # Get vehicle transform
         vv = self._parent.get_velocity()
@@ -79,69 +167,85 @@ class RadarSensor(object):
         # Ignore points with radar velocity caused by moving vehicles
         # Which are basically static points
         ## TODO This method still cannot avoid all the static points ###
-        vel_transform = carla.Transform(carla.Location(), self._rotation)
+        vel_transform = carla.Transform(carla.Location(), self.rotation)
         moving_vel = transform_to_world(vel_transform, veh_vel, inverse=True)
-        
         self.detected = False
-        # For each point
+
+        pos_list = []
+        vel_list = []
+        # For each point, get its x,y,z in radar coordinate
         for detect in event:
+            # Reject points with altitude higher than 20 degree
+            if detect.altitude > 0.25 or detect.altitude < 0:
+                continue
             # Calculate actual velocity of the point
             act_vel = detect.velocity + moving_vel.x
+            # Reject static point
             if abs(act_vel) < 3:
                 continue
-            
-            # Get point transform
-            azi = math.degrees(detect.azimuth)
-            alt = math.degrees(detect.altitude)
-            p2v_transform = carla.Transform(self._location, carla.Rotation(
-                                            pitch=self._rotation.pitch + alt, 
-                                            yaw=self._rotation.yaw + azi,
-                                            roll=self._rotation.roll))
-            # Get point position in vehicle coordinate
-            pos_vec = carla.Vector3D(x=detect.depth)
-            rel_pos = transform_to_world(p2v_transform, pos_vec)
 
-            # Store point
-            self.points.append([rel_pos.x, rel_pos.y, rel_pos.z, act_vel])
-            
-            # Draw point
-            if debug:
-                p2w_transform = carla.Transform(radar_pos, carla.Rotation(
-                                                pitch=radar_rot.pitch + alt, yaw=radar_rot.yaw + azi,
-                                                roll=radar_rot.roll))
-                draw_vec = transform_to_world(p2w_transform, carla.Vector3D(x=detect.depth-0.25))
-                norm_velocity = detect.velocity / self.velocity_range # range [-1, 1]
+            # Get point transform
+            sphi = math.sin(detect.azimuth)
+            cphi = math.cos(detect.azimuth)
+            stheta = math.sin(1.5707-detect.altitude)
+            ctheta = math.cos(1.5707-detect.altitude)
+            x = detect.depth * stheta * cphi
+            y = detect.depth * stheta * sphi
+            z = detect.depth * ctheta
+            pos_list.append([x, y, z])
+            vel_list.append(act_vel)
+        if not pos_list:
+            return
+
+        # Transform to vehicle coordinate
+        pos_m = np.transpose(np.array(pos_list))
+        rel_pos = transform_to_frame(self.transform, pos_m, inverse=True)
+        rel_vel = np.array(vel_list)
+
+        # Draw point
+        if self._debug:
+            p2w_transform = carla.Transform(radar_pos, self.rotation)
+            draw_m = transform_to_frame(p2w_transform, pos_m, inverse=True)
+            draw_m = np.transpose(draw_m)
+            for i, point_world in enumerate(draw_m):
+                draw_vec = carla.Vector3D(x=point_world[0], y=point_world[1], z=point_world[2])
+                norm_velocity = vel_list[i] / self._velocity_range # range [-1, 1]
                 r = int(self.clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
                 g = int(self.clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
                 b = int(abs(self.clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
-                self.debug.draw_point(draw_vec, size=0.075, 
+                self._draw.draw_point(draw_vec, size=0.075, 
                     life_time=0.06,persistent_lines=False, color=carla.Color(r, g, b))
-            
+        
         # Store detected object
-        if len(self.points) > 1:
-            rel = np.mean(np.array(self.points), axis=0)
-            self.rel_pos = rel[0:3]
-            self.rel_vel = rel[3:4]
-            self.detected = True
-            self.points = []
+        self.rel_pos = np.mean(rel_pos, axis=1)
+        self.rel_vel = np.mean(rel_vel)
+        self.detected = True
 
 # Obstacle sensor (ultrasonic)
 class ObstacleSensor(object):
-    def __init__(self, parent_actor, hud):
+    def __init__(self, parent_actor, hud, debug=True, listen=True, 
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, sensor_tick = '0.5'):
         self._parent = parent_actor
         world = self._parent.get_world()
         obs_sensor_bp = world.get_blueprint_library().find('sensor.other.obstacle')
-        obs_sensor_bp.set_attribute('distance', '20')
-        self.sensor = world.try_spawn_actor(obs_sensor_bp, carla.Transform(carla.Location(x=1, z=1)),
+        obs_sensor_bp.set_attribute('distance', '25')
+        obs_sensor_bp.set_attribute('sensor_tick', sensor_tick)
+
+        self.location = carla.Location(x=x, y=y, z=z)
+        self.rotation = carla.Rotation(yaw=yaw)
+        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        self.sensor = world.try_spawn_actor(obs_sensor_bp, self.transform,
                                             attach_to=self._parent)
+
         self.obstacle = None
         self.distance_to_obstacle = None
         self.close_to_obstacle = False
 
         # We need to pass the lambda a weak reference to self to avoid circular
         # reference.
-        weak_self = weakref.ref(self)
-        self.sensor.listen(lambda event: ObstacleSensor._on_detect(weak_self, event))
+        if listen:
+            weak_self = weakref.ref(self)
+            self.sensor.listen(lambda event: ObstacleSensor._on_detect(weak_self, event))
 
     @staticmethod
     def _on_detect(weak_self, event):
@@ -150,10 +254,6 @@ class ObstacleSensor(object):
             return
         self.obstacle = event.other_actor
         self.distance_to_obstacle = event.distance
-        if self.distance_to_obstacle < 20:
-            self.close_to_obstacle = True
-        else:
-            self.close_to_obstacle = False
 
 
 # CollisionSensor
@@ -257,13 +357,9 @@ class CameraManager(object):
         # For the main rgb camera
         self.process_rate = 10
         self.counter = 10
-        self.lanes = None
-        self.left_lane = Lane()
-        self.right_lane = Lane()
         self.curvature = None
         self.offset = None
-        self.inverse_mat = None
-        self.lane_image = None
+        self.ld = LaneDetection()
 
     def set_sensor(self, index, notify=True, display_camera=False):
         index = index % len(self.sensors)
@@ -306,7 +402,7 @@ class CameraManager(object):
         if self.surface is not None:
             display.blit(self.surface, (0, 0))
 
-    # TODO
+    # Do nothing
     @staticmethod
     def _process_image(weak_self, image):
         self = weak_self()
@@ -325,8 +421,12 @@ class CameraManager(object):
             array = array[:, :, :3]
             array = array[:, :, ::-1]
 
-            # Disabled for now, for not able to handle vehicle-in-front cases
-            # new_image, curvature, offset = lane_detection(array, self.left_lane, self.right_lane)
+            '''
+            # Disabled lane_detection for not able to handle vehicle-in-front cases
+            # and high computing resources required
+            self.ld.lane_detection(array)
+            array = self.ld.result_image
+            '''
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
 
         else:

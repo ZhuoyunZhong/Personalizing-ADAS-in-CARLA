@@ -20,6 +20,51 @@ def get_poly_y(x, param):
     return y
 
 
+def transform_to_frame(frame, points, inverse=False):
+    """
+    Perform a transform from local frame to world frame
+    :param frame: new frame
+    :param points: numpy matrix of points (3xn)
+    :param inverse: is inverse?
+    :return: a matrix of points (3xn)
+    """
+    if points.ndim > 1:
+        length = points.shape[1]
+    else:
+        length = 1
+        points = np.reshape(points, (3, 1))
+    points_m = np.vstack( (points[0:3, :], np.ones((1, length))) )  
+
+    rotation = frame.rotation
+    translation = frame.location
+
+    matrix = np.eye(4)
+
+    cy = math.cos(np.radians(rotation.yaw))
+    sy = math.sin(np.radians(rotation.yaw))
+    cr = math.cos(np.radians(rotation.roll))
+    sr = math.sin(np.radians(rotation.roll))
+    cp = math.cos(np.radians(rotation.pitch))
+    sp = math.sin(np.radians(rotation.pitch))
+    matrix[0, 3] = translation.x
+    matrix[1, 3] = translation.y
+    matrix[2, 3] = translation.z
+    matrix[0, 0] = cp * cy
+    matrix[0, 1] = cy * sp * sr - sy * cr
+    matrix[0, 2] = -(cy * sp * cr + sy * sr)
+    matrix[1, 0] = sy * cp
+    matrix[1, 1] = sy * sp * sr + cy * cr
+    matrix[1, 2] = cy * sr - sy * sp * cr
+    matrix[2, 0] = sp
+    matrix[2, 1] = -(cp * sr)
+    matrix[2, 2] = cp * cr
+
+    if not inverse:
+        matrix = np.linalg.inv(matrix)
+
+    return np.matmul(matrix, points_m)[0:3,:]
+
+
 def transform_to_world(local_frame, vector, inverse=False):
     """
     Perform a transform from local frame to world frame
@@ -58,7 +103,6 @@ def transform_to_world(local_frame, vector, inverse=False):
 
     vector_new = np.matmul(matrix, vector4)
     return carla.Vector3D(x=vector_new[0], y=vector_new[1], z=vector_new[2])
-
 
 
 def draw_waypoints(world, waypoints, z=0.5):

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import carla
+
 import pickle
 from os import path
 from os.path import dirname, abspath
@@ -8,7 +10,7 @@ from scipy.interpolate import splrep
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from agents.tools.misc import get_poly_y
+from agents.tools.misc import get_poly_y, transform_to_frame
 
 
 # A Model class to store personalized parameters
@@ -22,7 +24,8 @@ class Model:
 
         # Learning data container
         self._distance_list = []
-        self._speed_list = []
+        self._velocity_list = []
+        self._radar_list = []
         self._poly_points = []
         self._sin_points = []
         self._spline_points = []
@@ -31,11 +34,11 @@ class Model:
         # if file doesn't exist, create one
         if not path.exists(self.path):
             # Default model
-            model = {"safe_distance": 12.0, "target_speed": 25.0,
+            model = {"safe_distance": 10.0, "target_speed": 28.0,
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
-                     "sin_param": {"lon_dis": 27.8, "lat_dis": -3.5, "dt": 4.0},
+                     "sin_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0},
                      "spline_param": {"lon_dis": 30.0, "lat_dis": -3.5,
                                       "tck": splrep([0, 1, 2, 28, 29, 30], [0, 0, 0, -3.5, -3.5, -3.5])}}
             with open(self.path, 'wb') as f:
@@ -49,14 +52,16 @@ class Model:
     # Collect data
     def collect(self, dict_param):
         if dict_param:
-            if "speed" in dict_param:
-                self._speed_list.append(dict_param["speed"])
+            if "velocity" in dict_param:
+                self._velocity_list.append(dict_param["velocity"])
             if "distance" in dict_param:
                 self._distance_list.append(dict_param["distance"])
             if "points" in dict_param:
                 self._poly_points.append(dict_param["points"])
                 self._sin_points.append(dict_param["points"])
                 self._spline_points.append(dict_param["points"])
+            if "radars" in dict_param:
+                self._radar_list.append(dict_param["radars"])
 
     # Return a certain parameter value
     def get_parameter(self, keyword):
@@ -77,37 +82,41 @@ class Model:
     @staticmethod
     # Return points indicating lane changing process
     def get_lane_changing_points(points):
+        x_ref, y_ref, z_ref, yaw_ref, t_ref = points[0]
+
+        # In matrix form
+        points_m = np.transpose(np.array(points))
+
         # Transform back to (0, 0)
-        x_ref, y_ref, yaw_ref, t_ref = points[0]
-        sy = math.sin(math.radians(yaw_ref))
-        cy = math.cos(math.radians(yaw_ref))
+        ref_frame = carla.Transform(carla.Location(x=x_ref, y=y_ref, z=z_ref),
+                                    carla.Rotation(yaw=yaw_ref, pitch=0, roll=0))
+        points_v = transform_to_frame(ref_frame, points_m[0:3, :])
 
         # Get points (x, t) and (y, t)
-        point_list_x = []
-        point_list_y = []
-        point_list_t = []
-        for point_x, point_y, _, point_t in points:
-            x = (cy * point_x + sy * point_y) + (-cy * x_ref - sy * y_ref)
-            y = (-sy * point_x + cy * point_y) + (sy * x_ref - cy * y_ref)
-            t = (point_t - t_ref) / 1e3
-            point_list_x.append(x)
-            point_list_y.append(y)
-            point_list_t.append(t)
-        x_v = np.array(point_list_x)
-        y_v = np.array(point_list_y)
-        t_v = np.array(point_list_t)
+        x_v = points_v[0,:]
+        y_v = points_v[1,:]
+        z_v = points_v[2,:]
+        t_v = points_m[4,:] / 1000
 
         # Find out which part is lane changing
         e_y = y_v[1:] - y_v[0:-1]
         index = e_y < -0.02  # Left
         x_v = x_v[1:][index]
         y_v = y_v[1:][index]
+        z_v = z_v[1:][index]
         t_v = t_v[1:][index]
         x_v -= x_v[0]
         y_v -= y_v[0]
+        z_v -= z_v[0]
         t_v -= t_v[0]
+        start_index = -1
+        for i, val in enumerate(index):
+            if val:
+                start_index = i
+                break
 
-        return x_v, y_v, t_v
+        #Temp Not using z_v for now
+        return x_v, y_v, t_v, start_index
 
     # Learn from collected data to update value
     def update_poly_param(self, debug=False):
@@ -133,7 +142,7 @@ class Model:
         current_dt = current_poly_param["dt"]
 
         # Get points while lane changing
-        x_v, y_v, t_v = self.get_lane_changing_points(self._poly_points)
+        x_v, y_v, t_v, start_index = self.get_lane_changing_points(self._poly_points)
         if len(x_v) < 10:
             return
 
@@ -209,9 +218,9 @@ class Model:
         current_lon_dis = current_sin_param["lon_dis"]
         current_lat_dis = current_sin_param["lat_dis"]
         current_dt = current_sin_param["dt"]
-
+        
         # Get points while lane changing
-        x_v, y_v, t_v = self.get_lane_changing_points(self._sin_points)
+        x_v, y_v, t_v, start_index = self.get_lane_changing_points(self._sin_points)
         if len(x_v) < 10:
             return
 
@@ -219,6 +228,21 @@ class Model:
         new_dt = t_v[-1] - t_v[0]
         new_lon_dis = x_v[-1] - x_v[0]
         new_lat_dis = y_v[-1] - y_v[0]
+
+        # Get parameters for GMM
+        # velocity of ego
+        V = self._velocity_list[start_index].x
+        # lateral distance
+        H = current_lat_dis
+        # Get radar information when lane change happens
+        radars = self._radar_list[start_index]
+        if not radars[1] or not radars[2]:
+            return
+        DL = radars[1][1][0] - x_v[0]
+        DF = radars[2][1][0] - x_v[0]
+        print(V, H, DL, DF)
+        print(new_dt)
+
         # update values
         dt = self.change_param(current_dt, new_dt)
         lon_dis = self.change_param(current_lon_dis, new_lon_dis)
@@ -283,22 +307,29 @@ class Model:
         print("Safe Distance Updated")
 
     def update_target_speed(self):
+        # Select ones while going straight
+        speed_straight_list = []
+        for v in self._velocity_list:
+            if abs(v.x) > 4 and abs(v.x) / abs(v.y) > 30:
+                speed = 3.6 * v.x # km/h
+                speed_straight_list.append(speed)
+
         # Only consider the largest 10% of the speed value list
         percentage = 0.2
-        length = int(percentage * len(self._speed_list))
+        length = int(percentage * len(speed_straight_list))
         if length <= 10:
             return
 
         current_speed = self.get_parameter("target_speed")
 
         # get new value
-        self._speed_list.sort(reverse=True)
-        new_speed = sum(self._speed_list[0:length]) / length
+        speed_straight_list.sort(reverse=True)
+        new_speed = sum(speed_straight_list[0:length]) / length
         # update
         target_speed = self.change_param(current_speed, new_speed)
 
         self._model["target_speed"] = target_speed
-        self._speed_list = []
+        self._velocity_list = []
         print("Target Speed Updated")
 
     # Store learned result
