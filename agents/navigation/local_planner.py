@@ -62,7 +62,7 @@ class LocalPlanner(object):
         self._next_waypoints = None
         self.target_waypoint = None
         self._vehicle_controller = None
-        self._global_plan = None
+        self._global_plan = None        
         
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
@@ -117,8 +117,8 @@ class LocalPlanner(object):
                 args_longitudinal_dict = opt_dict['longitudinal_control_dict']
 
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-
-
+        
+        
         self._vehicle_controller = VehiclePIDController(self._vehicle,
                                                         args_lateral=args_lateral_dict,
                                                         args_longitudinal=args_longitudinal_dict)
@@ -132,7 +132,7 @@ class LocalPlanner(object):
         
         # fill waypoint trajectory queue
         self._compute_next_waypoints(k=200)
-            
+
     def set_speed(self, speed):
         """
         :param speed: new target speed in Km/h
@@ -152,7 +152,7 @@ class LocalPlanner(object):
         for _ in range(k):
             last_waypoint = self._waypoints_queue[-1][0]
             next_waypoints = list(last_waypoint.next(self._sampling_radius))
-            
+
             if len(next_waypoints) == 1:
                 # only one option available ==> lanefollowing
                 next_waypoint = next_waypoints[0]
@@ -223,7 +223,7 @@ class LocalPlanner(object):
                 else:
                     break
 
-        # Control Vehicle
+                # Control Vehicle
 
         # current vehicle waypoint
         vehicle_transform = self._vehicle.get_transform()
@@ -239,6 +239,23 @@ class LocalPlanner(object):
 
         if debug:
             draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+
+        return control
+
+    def soft_stop(self, debug=True):
+        """
+        Send an light stop command to the vehicle
+        :return: control
+        """
+        control = self.run_step(debug=debug)
+        control.throttle = 0.0
+        control.brake = 0.1
+
+        return control
+
+    def empty_control(self, debug=True):
+        control = self.run_step(debug=debug)
+        control.throttle = 0.0
 
         return control
 
