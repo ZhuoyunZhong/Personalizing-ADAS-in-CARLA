@@ -18,7 +18,8 @@ except IndexError:
 import carla
 import pygame
 
-from manual_control import *
+from manual_control import KeyboardControl
+from load_actors import spawn_surrounding_vehicles
 from sensors import *
 from hud import *
 
@@ -32,7 +33,7 @@ from agents.navigation.learning_agent import LearningAgent
 
 
 class World(object):
-    def __init__(self, carla_world, hud, actor_filter, agent_str):
+    def __init__(self, carla_world, hud, actor_filter, agent_str, scene):
         # World
         self.world = carla_world
         self.map = self.world.get_map()
@@ -49,6 +50,10 @@ class World(object):
         self.obstacle_sensor = None         # sensors
         self.collision_sensor = None
         self.gnss_sensor = None
+        self._ego_list = []
+        # Other actors
+        self._scene = scene
+        self._actor_list = []
         # camera manager
         self.main_rgb_camera = None
         self.depth_camera = None
@@ -72,37 +77,36 @@ class World(object):
         self.recording_start = 0
 
     def restart(self):
-        # Get a random blueprint from the filter
+        # Destroy existing ego and actors
+        if self._ego_list or self._actor_list:
+            self.destroy()
+
+        # Spawn the player
+        # get a random blueprint from the filter
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
         blueprint.set_attribute('role_name', 'ego')
-        # blueprint.set_attribute('color', '0, 0, 0')
-        # Spawn the player.
-        if self.player is not None:
-            self.destroy()
-            spawn_point = carla.Transform(carla.Location(x=self._spawn_loc[0],
-                                                         y=self._spawn_loc[1], z=self._spawn_loc[2]))
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        while self.player is None:
-            spawn_point = carla.Transform(carla.Location(x=self._spawn_loc[0],
-                                                         y=self._spawn_loc[1], z=self._spawn_loc[2]))
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        blueprint.set_attribute('color', '0, 0, 0')
+        spawn_point = carla.Transform(carla.Location(x=self._spawn_loc[0], y=self._spawn_loc[1], 
+                                                     z=self._spawn_loc[2]))
+        self.player = self.world.try_spawn_actor(blueprint, spawn_point)
 
         # Set up the sensors.
-        # Keep same camera config if the camera manager exists.
         self.main_rgb_camera = CameraManager(self.player, self.hud)
         self.main_rgb_camera.set_sensor(0, notify=False, display_camera=True)
-        #self.depth_camera = CameraManager(self.player, self.hud)
-        #self.depth_camera.set_sensor(3, notify=False)
-        #self.segmentation_camera = CameraManager(self.player, self.hud)
-        #self.segmentation_camera.set_sensor(5, notify=False)
-        #self.lidar = CameraManager(self.player, self.hud)
-        #self.lidar.transform_index = 1
-        #self.lidar.set_sensor(6, notify=False)
+        '''
+        self.depth_camera = CameraManager(self.player, self.hud)
+        self.depth_camera.set_sensor(3, notify=False)
+        self.segmentation_camera = CameraManager(self.player, self.hud)
+        self.segmentation_camera.set_sensor(5, notify=False)
+        self.lidar = CameraManager(self.player, self.hud)
+        self.lidar.transform_index = 1
+        self.lidar.set_sensor(6, notify=False)
+        '''
 
         self.obstacle_sensor = ObstacleSensor(self.player, self.hud)
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
-        
+
         self.front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0)
         self.left_front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-30.0)
         self.left_back_radar = FakeRadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-150.0)
@@ -115,22 +119,40 @@ class World(object):
         self.left_back_radar = RadarSensor(self.player, self.hud, hf='40', pps='1000', 
                                            x=-2.5, y=-0.8, z=1.0, yaw=-155.0)
         self.back_radar = RadarSensor(self.player, self.hud, rr='20',
-                                       x=-2.5, y=0.0, z=1.0, yaw=180.0)
+                                      x=-2.5, y=0.0, z=1.0, yaw=180.0)
         self.right_front_radar = RadarSensor(self.player, self.hud, hf='40', pps='800', 
                                            x=2.5, y=0.5, z=1.0, yaw=20.0)
         self.right_back_radar = RadarSensor(self.player, self.hud, hf='40', pps='800', 
                                            x=-2.5, y=0.5, z=1.0, yaw=140.0)
         '''
 
+        self._ego_list = [
+            self.main_rgb_camera.sensor,
+            #self.depth_camera.sensor,
+            #self.segmentation_camera.sensor,
+            #self.lidar.sensor,
+            self.obstacle_sensor.sensor,
+            self.collision_sensor.sensor,
+            self.gnss_sensor.sensor,
+            self.front_radar,
+            #self.back_radar.sensor,
+            self.left_front_radar,
+            self.left_back_radar,
+            #self.right_front_radar.sensor,
+            #self.right_back_radar.sensor,
+            self.player]
         
+        # Spawn other actors
+        self._actor_list = spawn_surrounding_vehicles(self.world, self._scene)
+
         # Reset agent
         if self.agent_name == "Learning":
             self.agent = LearningAgent(self)
-            # Destination Setting
+            # destination Setting
             self.agent.set_destination((230, 39, 0))
         elif self.agent_name == "Basic":
             self.agent = BasicAgent(self.player)
-            # Destination Setting
+            # destination Setting
             self.agent.set_destination((230, 39, 0))
         else:
             self.agent = RoamingAgent(self.player)
@@ -149,7 +171,7 @@ class World(object):
         self._weather_index += -1 if reverse else 1
         self._weather_index %= len(self._weather_presets)
         preset = self._weather_presets[self._weather_index]
-        self.hud.notification('Weather: %s' % preset[1])
+        self.hud.notification('Weather: %s' % preset[1])    
         self.player.get_world().set_weather(preset[0])
 
     def tick(self, clock):
@@ -166,23 +188,17 @@ class World(object):
         self.is_learning = enabled
 
     def destroy(self):
-        actors = [
-            self.main_rgb_camera.sensor,
-            #self.depth_camera.sensor,
-            #self.segmentation_camera.sensor,
-            #self.lidar.sensor,
-            self.obstacle_sensor.sensor,
-            self.collision_sensor.sensor,
-            self.front_radar,
-            #self.back_radar.sensor,
-            self.left_front_radar,
-            self.left_back_radar,
-            #self.right_front_radar.sensor,
-            #self.right_back_radar.sensor,
-            self.player]
-        for actor in actors:
+        for actor in self._ego_list:
             if actor is not None:
                 actor.destroy()
+        self._ego_list = []
+        
+        for actor in self._actor_list:
+            if actor is not None:
+                # disconnect from client
+                actor.set_autopilot(False)
+                actor.destroy()
+        self._actor_list = []
 
 
 # Main loop
@@ -202,7 +218,7 @@ def game_loop(args):
         hud = HUD(args.width, args.height)
 
         # World
-        world = World(client.get_world(), hud, args.filter, args.agent)
+        world = World(client.get_world(), hud, args.filter, args.agent, args.scene)
         # Keyboard Control
         controller = KeyboardControl(world, start_in_autopilot=True)
 
@@ -262,6 +278,8 @@ def main():
                            help='actor filter (default: "vehicle.tesla.model3")')
     argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic", "Learning"], default="Learning",
                            help="select which agent to run")
+    argparser.add_argument("-s", "--scene", type=str, choices=['0', '1', '2'], default='0',
+                           help="select which scene to run")
     args = argparser.parse_args()
     args.width, args.height = [int(x) for x in args.res.split('x')]
 

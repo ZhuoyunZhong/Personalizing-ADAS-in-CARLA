@@ -15,9 +15,9 @@ Ubuntu 18.04
 ## Carla Simulator Installation
 Go to official [Carla Releases](https://github.com/carla-simulator/carla/releases) Github page.
 
-Download **[Linux] CARLA 0.9.8**, unzip the file and rename the folder as **Carla_Simulator**. Additional maps are optional.
+Download **[Linux] CARLA 0.9.8**, unzip the file and rename the folder as **CARLA_Simulator**. Additional maps are optional.
 
-Put **Carla_Simulator** folder and **this repository** folder in the same folder. So the folder structure should look like:
+Put **CARLA_Simulator** folder and **this repository** folder in the same folder. So the folder structure should look like:
 
 ```
 Carla                              
@@ -40,9 +40,9 @@ Carla
 
 1.  `numpy` and `pygame` should be correctly installed
 
-2. Go to **Carla_Simulator** folder,
+2. Go to **CARLA_Simulator** folder,
 
-   `cd Carla/Carla_Simulator` 
+   `cd Carla/CARLA_Simulator` 
 
    run CARLA in Low Graphic Quality
 
@@ -62,10 +62,10 @@ Carla
 
    To generate scene 1 where one vehicle is in front of the ego vehicle:
 
-   `python run.py -s 1`
+   `python ego_vehicle.py -s 1`
 
    To generate scene 2 where multiple vehicles are surrounding the ego vehicle:
 
-   `python run.py -s 2` 
+   `python ego_vehicle.py -s 2` 
 
 4. The vehicle is initialized with autopilot mode **on**. To switch to manual control, press `p`. To start or end the learning process, press `l` and drive the vehicle. After learning, it requires to regenerate the scene in order to see the learning result (for now).
