@@ -92,6 +92,7 @@ class KeyboardControl(object):
                 if self._is_quit_shortcut(event.key):
                     return True
                 elif event.key == K_BACKSPACE:
+                    self._learning_enabled = False
                     world.restart()
                 elif event.key == K_TAB:
                     world.main_rgb_camera.toggle_camera()
