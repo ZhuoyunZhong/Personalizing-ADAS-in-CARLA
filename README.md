@@ -38,7 +38,7 @@ Carla
 
 ## Run
 
-1.  `numpy` and `pygame` should be correctly installed
+1.  `numpy`, `scikit-learn` and `pygame` should be correctly installed
 
 2. Go to **CARLA_Simulator** folder,
 

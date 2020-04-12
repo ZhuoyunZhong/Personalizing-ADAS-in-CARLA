@@ -4,6 +4,3 @@ __pycache__/
 
 # Ignore idea
 .idea/*
-
-# TEMP Remove pickle
-*.pickle
