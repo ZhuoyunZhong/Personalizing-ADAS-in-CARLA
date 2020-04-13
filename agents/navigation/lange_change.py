@@ -3,6 +3,8 @@
 import numpy as np
 from math import pi, sin, cos, radians, sqrt
 from scipy.interpolate import splrep, splev
+
+from agents.learning.GMM import GMM
 from agents.navigation.local_planner import RoadOption
 from agents.navigation.local_waypoint import LocalWaypoint
 from agents.tools.misc import get_poly_y
@@ -51,12 +53,16 @@ class PolyLaneChange:
 
 # This class generate waypoints given sinusoidal trajectory
 class SinLaneChange:
-    def __init__(self, world, param):
+    def __init__(self, world, param, GMM_v=np.array([])):
         self._world_obj = world
 
         self._lon_dis = param['lon_dis']
         self._lat_dis = param['lat_dis']
         self._dt = param["dt"]
+        if GMM_v.shape[0] > 0:
+            GMM_sin = GMM()
+            self._dt = GMM_sin.predict_value(GMM_v)[0][0]
+            print("Predict dt: %s from GMM" % self._dt)
 
         self._npts = 15
 

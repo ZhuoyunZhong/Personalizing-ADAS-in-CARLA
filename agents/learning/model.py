@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 
 import carla
 
@@ -17,7 +18,8 @@ from agents.tools.misc import get_poly_y, transform_to_frame
 class Model:
     def __init__(self):
         # Path to store model
-        self.path = path.join(dirname(dirname(dirname(abspath(__file__)))), "data/model.pickle")
+        self._data_folder = path.join(dirname(dirname(dirname(abspath(__file__)))), "data")
+        self._model_path = path.join(self._data_folder, "model.pickle")
         # Model
         self._model = None
         self.load_model()
@@ -32,7 +34,7 @@ class Model:
 
     def load_model(self):
         # if file doesn't exist, create one
-        if not path.exists(self.path):
+        if not path.exists(self._model_path):
             # Default model
             model = {"safe_distance": 10.0, "target_speed": 28.0,
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
@@ -41,11 +43,11 @@ class Model:
                      "sin_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0},
                      "spline_param": {"lon_dis": 30.0, "lat_dis": -3.5,
                                       "tck": splrep([0, 1, 2, 28, 29, 30], [0, 0, 0, -3.5, -3.5, -3.5])}}
-            with open(self.path, 'wb') as f:
+            with open(self._model_path, 'wb') as f:
                 pickle.dump(model, f)
 
         # load model from file
-        with open(self.path, 'rb') as f:
+        with open(self._model_path, 'rb') as f:
             model = pickle.load(f)
         self._model = model
 
@@ -101,19 +103,21 @@ class Model:
         # Find out which part is lane changing
         e_y = y_v[1:] - y_v[0:-1]
         index = e_y < -0.02  # Left
+        start_index = -1
         x_v = x_v[1:][index]
         y_v = y_v[1:][index]
         z_v = z_v[1:][index]
         t_v = t_v[1:][index]
-        x_v -= x_v[0]
-        y_v -= y_v[0]
-        z_v -= z_v[0]
-        t_v -= t_v[0]
-        start_index = -1
-        for i, val in enumerate(index):
-            if val:
-                start_index = i
-                break
+
+        if x_v.shape[0] > 0:
+            x_v -= x_v[0]
+            y_v -= y_v[0]
+            z_v -= z_v[0]
+            t_v -= t_v[0]
+            for i, val in enumerate(index):
+                if val:
+                    start_index = i
+                    break
 
         #Temp Not using z_v for now
         return x_v, y_v, t_v, start_index
@@ -204,16 +208,16 @@ class Model:
         self._poly_points = []
         print("Poly Parameters Updated")
 
-    def update_sin_param(self, debug=True):
+    def update_sin_param(self, debug=False):
         """
         Sinusoidal Method comes from:
         V. A. Butakov and P. Ioannou,
         "Personalized Driver/Vehicle Lane Change Models for ADAS,"
         in IEEE Transactions on Vehicular Technology, vol. 64, no. 10, pp. 4422-4431, Oct. 2015.
         """
-        if len(self._sin_points) < 50:
-            return
-
+        if len(self._sin_points) < 30:
+            return  
+        
         current_sin_param = self.get_parameter("sin_param")
         current_lon_dis = current_sin_param["lon_dis"]
         current_lat_dis = current_sin_param["lat_dis"]
@@ -223,27 +227,34 @@ class Model:
         x_v, y_v, t_v, start_index = self.get_lane_changing_points(self._sin_points)
         if len(x_v) < 10:
             return
-
+        
         # New lane changing parameters
         new_dt = t_v[-1] - t_v[0]
         new_lon_dis = x_v[-1] - x_v[0]
         new_lat_dis = y_v[-1] - y_v[0]
 
-        # Get parameters for GMM
+        # For GMM
         # velocity of ego
         V = self._velocity_list[start_index].x
         # lateral distance
-        H = current_lat_dis
-        # Get radar information when lane change happens
+        H = new_lat_dis
+        # get radar information when lane change happens
         radars = self._radar_list[start_index]
-        if not radars[1] or not radars[2]:
-            return
-        DL = radars[1][1][0] - x_v[0]
-        DF = radars[2][1][0] - x_v[0]
-        print(V, H, DL, DF)
-        print(new_dt)
+        DL = radars[1][1][0] if radars[1] else 100
+        DF = radars[2][1][0] if radars[2] else -100
+        print(V, H, DL, DF, new_dt)
+        # Save data for GMM
+        GMM_train_path = path.join(self._data_folder, "GMM_train.pickle")
+        if path.exists(GMM_train_path):
+            with open(GMM_train_path, 'rb') as f:
+                GMM_train_data = pickle.load(f)
+        else:
+            GMM_train_data = []
+        GMM_train_data.append([V, H, DL, DF, new_dt])
+        with open(GMM_train_path, 'wb') as f:
+            pickle.dump(GMM_train_data, f)
 
-        # update values
+        # Update values
         dt = self.change_param(current_dt, new_dt)
         lon_dis = self.change_param(current_lon_dis, new_lon_dis)
         lat_dis = self.change_param(current_lat_dis, new_lat_dis)
@@ -287,7 +298,7 @@ class Model:
         if len(self._spline_points) < 50:
             return
 
-    def update_safe_distance(self):
+    def update_safe_distance(self, debug=False):
         # Only consider the lowest 10% of the distance value list
         percentage = 0.2
         length = int(percentage * len(self._distance_list))
@@ -334,14 +345,14 @@ class Model:
 
     # Store learned result
     def store_new_model(self):
-        with open(self.path, 'wb') as f:
+        with open(self._model_path, 'wb') as f:
             pickle.dump(self._model, f)
 
     # End collecting data
     def end_collect(self):
-        self.update_poly_param()
-        self.update_sin_param()
-        # self.update_spline_param()
+        self.update_sin_param(debug=True)
+        #self.update_poly_param()
+        #self.update_spline_param()
         self.update_safe_distance()
         self.update_target_speed()
 

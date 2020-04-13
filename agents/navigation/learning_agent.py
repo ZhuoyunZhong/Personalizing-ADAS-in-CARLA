@@ -30,6 +30,7 @@ class LearningAgent(Agent):
         self._model = Model()
         self._safe_distance = None
         self._target_speed = None
+        self._sin_param = None
         self._poly_param = None
         self._spline_param = None
         # Local plannar
@@ -53,6 +54,7 @@ class LearningAgent(Agent):
     def update_parameters(self):
         self._safe_distance = self._model.get_parameter("safe_distance")
         self._target_speed = self._model.get_parameter("target_speed")
+        self._sin_param = self._model.get_parameter("sin_param")
         self._poly_param = self._model.get_parameter("poly_param")
         self._spline_param = self._model.get_parameter("spline_param")
         args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01}
@@ -172,10 +174,10 @@ class LearningAgent(Agent):
             self._hazard_detected = True
         '''
         
-        print(self._front_r)
-        print(self._left_front_r)
-        print(self._left_back_r)
-        print(self._state)
+        #print(self._front_r)
+        #print(self._left_front_r)
+        #print(self._left_back_r)
+        #print(self._state)
 
         # Finite State Machine
         # 1, Navigating
@@ -238,7 +240,11 @@ class LearningAgent(Agent):
             ref = [ref_location.x + wait_dist, ref_location.y, ref_yaw]
 
             # Replace current plan with a lane change plan
-            lane_changer = SinLaneChange(self._world_obj, self._poly_param)
+            DL = self._left_front_r[1][0] if self._left_front_r else 100
+            DH = self._left_back_r[1][0] if self._left_back_r else 100
+            GMM_v = [[self._vehicle.get_velocity().x, self._sin_param["lat_dis"], DL, DH]]
+            
+            lane_changer = SinLaneChange(self._world_obj, self._sin_param, np.array(GMM_v))
             lane_change_plan = lane_changer.get_waypoints(ref)
             self._local_planner.set_local_plan(lane_change_plan)
             '''
