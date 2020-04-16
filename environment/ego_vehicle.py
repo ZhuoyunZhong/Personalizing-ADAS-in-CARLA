@@ -89,6 +89,9 @@ class World(object):
         spawn_point = carla.Transform(carla.Location(x=self._spawn_loc[0], y=self._spawn_loc[1], 
                                                      z=self._spawn_loc[2]))
         self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        if self.player is None:
+            print("Ego vehicle spawn location occupied.\n Spawning failed!")
+            return
 
         # Set up the sensors.
         self.main_rgb_camera = CameraManager(self.player, self.hud)
@@ -217,9 +220,12 @@ def game_loop(args):
             pygame.HWSURFACE | pygame.DOUBLEBUF)
         hud = HUD(args.width, args.height)
 
-        # World
+        # Create ego world and spawn ego vehicle
         world = World(client.get_world(), hud, args.filter, args.agent, args.scene)
-        # Keyboard Control
+        if world.player is None:
+            return
+
+        # Keyboard controller set up
         controller = KeyboardControl(world, start_in_autopilot=True)
 
         # Manually start the vehicle to avoid control delay
