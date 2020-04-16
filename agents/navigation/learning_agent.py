@@ -199,7 +199,7 @@ class LearningAgent(Agent):
         elif self._state == AgentState.PREPARE_LANE_CHANGING:
             if  not (self._front_r and self._front_r[1][0] < self._safe_distance) and \
                 not (self._left_front_r and self._left_front_r[1][0] < self._safe_distance) and \
-                not (self._left_back_r and self._left_back_r[1][0] > -7):
+                not (self._left_back_r and self._left_back_r[1][0] > -10):
                     print(self._front_r)
                     print(self._left_front_r)
                     print(self._left_back_r)

@@ -62,7 +62,11 @@ class SinLaneChange:
         if GMM_v.shape[0] > 0:
             GMM_sin = GMM()
             self._dt = GMM_sin.predict_value(GMM_v)[0][0]
-            print("Predict dt: %s from GMM" % self._dt)
+            if np.isnan(self._dt):
+                self._dt = 4.0
+                print("GMM model failed, send dt = 4")
+            else:
+                print("Predict dt: %s from GMM" % self._dt)
 
         self._npts = 15
 

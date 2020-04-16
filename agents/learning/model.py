@@ -244,15 +244,17 @@ class Model:
         DF = radars[2][1][0] if radars[2] else -100
         print(V, H, DL, DF, new_dt)
         # Save data for GMM
-        GMM_train_path = path.join(self._data_folder, "GMM_train.pickle")
+        GMM_train_path = path.join(self._data_folder, "GMM_train_data.csv")
         if path.exists(GMM_train_path):
             with open(GMM_train_path, 'rb') as f:
-                GMM_train_data = pickle.load(f)
+                GMM_train_data = np.loadtxt(f, delimiter=",")
+                GMM_train_data = np.atleast_2d(GMM_train_data)
+            GMM_train_data = np.append(GMM_train_data, np.array([[V, H, DL, DF, new_dt]]), axis=0)
         else:
-            GMM_train_data = []
-        GMM_train_data.append([V, H, DL, DF, new_dt])
+            GMM_train_data = np.array([[V, H, DL, DF, new_dt]])
+        
         with open(GMM_train_path, 'wb') as f:
-            pickle.dump(GMM_train_data, f)
+            np.savetxt(f, GMM_train_data, delimiter=",")
 
         # Update values
         dt = self.change_param(current_dt, new_dt)

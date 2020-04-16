@@ -4,6 +4,7 @@
 import pickle
 from os import path
 from os.path import dirname, abspath
+import sys
 
 from sklearn.cluster import KMeans
 import scipy
@@ -17,19 +18,17 @@ import numpy as np
 class GMM:
     def __init__(self):
         self._data_folder = path.join(dirname(dirname(dirname(abspath(__file__)))), "data")
-        self._train_file_path = path.join(self._data_folder, "GMM_train.pickle")
+        self._train_file_path = path.join(self._data_folder, "GMM_train_data.csv")
         self._model_file_path = path.join(self._data_folder, "GMM_model.pickle")
-
+        # Training parameters
+        self._iteration_t = 40
+        self._loss = 0
         self._Gaussian_set_num = 6
-        self._data_dim = None
-        self._iteration_t = 1
+        # Model
         self._p = None
         self._mean = None
         self._covar = None
-        self._GMM_model = None
-
-        self._train_data = None
-        self._loss = 0
+        self.GMM_model = None
         self._import_model()
 
     def _import_model(self):
@@ -38,21 +37,19 @@ class GMM:
             print('GMM model does not exist')
             if path.exists(self._train_file_path):
                 with open(self._train_file_path, 'rb') as f:
-                    self._train_data = pickle.load(f)
-                self.train(np.array(self._train_data), self._Gaussian_set_num, self._iteration_t)
+                    data = np.loadtxt(f, delimiter=",")
+                self.train(data, self._Gaussian_set_num, self._iteration_t)
             else:
-                with open(self._train_file_path, 'wb') as f:
-                    self._train_data = [[8.0, -3.5, 15.0, -10.0, 5.0]]
-                    pickle.dump(self._train_data, f)
-                self.train(np.array(self._train_data), self._Gaussian_set_num, self._iteration_t)
+                print('GMM train data does not exist')
                 
         # Load GMM model
         with open(self._model_file_path, 'rb') as f:
-            self._GMM_model = pickle.load(f)
-            self._p = self._GMM_model['p']
-            self._mean = self._GMM_model['mean']
-            self._covar = self._GMM_model['covariance']
-        print('Loaded GMM model')
+            self.GMM_model = pickle.load(f)
+            self._Gaussian_set_num = self.GMM_model['Gaussian_number']
+            self._p = self.GMM_model['p']
+            self._mean = self.GMM_model['mean']
+            self._covar = self.GMM_model['covariance']
+        print('GMM model loaded')
     
     def _initial_GMM_params(self, data):
         # K-means cluster
@@ -71,7 +68,7 @@ class GMM:
             diff_mean = data[points_ids] - self._mean[label, :]
             self._covar[label, :, :] = self._p[label] * np.dot(diff_mean.T, diff_mean) \
                                          / len(points_ids)
-            
+        
     def train(self, data=None, Gaussian_set_num=None, iteration_t=None):
         if Gaussian_set_num:
             self._Gaussian_set_num = Gaussian_set_num
@@ -79,19 +76,13 @@ class GMM:
             self._iteration_t = iteration_t
 
         data_size, dim = data.shape[0], data.shape[1]
-        self._data_dim = dim
 
-        # EM Algorithm
-        # Initial guess with k-means cluster
+        # Initialize GMM using k-mean
         self._initial_GMM_params(data)
 
         # Run EM
-        for t in range(iteration_t):
+        for t in range(self._iteration_t):
             # E-step
-            '''
-            Q = Sum(i=1:N)( Sum(zi=z1:zK)(log`p(xi,zi|theta) × p(zi|xi,theta_t)) )
-            Q = Sum(k=1:K)( Sum(i=1:N)( (log`pk + log`N(xi|meank,covark) x p(zi_t|xi,theta_t)) )
-            '''
             # compute post probability: p(zi_t|xi,theta_t)
             gamma = np.zeros((data_size, self._Gaussian_set_num))
 
@@ -101,35 +92,24 @@ class GMM:
                                                     allow_singular=True)
             # normalize
             gamma /= np.sum(gamma, axis=1)[:,np.newaxis]
-
             # M-step
-            '''
-            theta_t+1 = argmax(Q) 
-            pk_t+1 = 1/N * Sum(i=1:N)( p(zi_t|xi,theta_t) )
-            meank_t+1 = Sum(i=1:N)(p(zi|xi,theta_t) x xi) / Sum(i=1:N)( p(zi|xi,theta_t) )
-            covark_t+1 = Sum(i=1:N)(p(zi|xi,theta_t) x (xi-meank_t+1)(xi-meank_t+1)T) 
-                         / Sum(i=1:N)( p(zi|xi,theta_t) )
-            '''
             self._p = np.mean(gamma, axis=0)
             self._mean = np.dot(gamma.T, data) / np.sum(gamma, axis=0)[:,np.newaxis]
+            
             for label in range(self._Gaussian_set_num):
                 diff_mean = data - self._mean[label, :]
                 gamma_diag = np.diag(gamma[:,label])
                 self._covar[label,:,:] = np.dot(np.dot(diff_mean.T, gamma_diag), diff_mean) \
-                                         / np.sum(gamma, axis=0)[:,np.newaxis][label]
+                                         / np.sum(gamma, axis=0)[:,np.newaxis][label]    
 
             # Get current loss
-            N_dis = np.zeros((data_size, self._Gaussian_set_num))
+            loss = np.zeros((data_size, self._Gaussian_set_num))
             for label in range(self._Gaussian_set_num):
-                '''
-                new_loss[:,label] = multivariate_normal.logpdf(data, 
-                                                    self._mean[label, :], self._covar[label, :,:], 
+                loss[:,label] = self._p[label] * multivariate_normal.pdf(data, 
+                                                    self._mean[label,:], self._covar[label,:,:],
                                                     allow_singular=True)
-                '''
-                dist = multivariate_normal(self._mean[label], self._covar[label],allow_singular=True)
-                N_dis[:,label] = self._p[label] * dist.pdf(label)
-            new_loss = np.log(np.mean(N_dis, axis=1)) # point probability
-            new_loss = np.sum(new_loss) # sum probability
+            new_loss = np.log(np.mean(loss, axis=1)) # point probability
+            new_loss = np.mean(new_loss) # sum probability
 
             if t % 5 == 0:
                 print("Iteration: %d Loss: %0.6f" %(t, new_loss))
@@ -138,14 +118,16 @@ class GMM:
             self._loss = new_loss
 
         # Store model
-        GMM_model = {'p': self._p, 'mean': self._mean, 'covariance':self._covar}
+        self.GMM_model = {'p': self._p, 'mean': self._mean, 'covariance':self._covar, 
+                     'Gaussian_number': self._Gaussian_set_num}
         with open(self._model_file_path, 'wb') as f:
-            pickle.dump(GMM_model, f)
+            pickle.dump(self.GMM_model, f)
+
         print('GMM model trained')
 
     def predict_label(self, points):
         # Check dimension
-        assert(self._data_dim == points.shape[1])
+        assert(self._mean.shape[1] == points.shape[1])
 
         # Get the most likely label for each point
         labels = np.zeros((points.shape[0], self._Gaussian_set_num))
@@ -168,6 +150,7 @@ class GMM:
         missing_indices[known_indices] = False
         missing_indices, = np.where(missing_indices)
 
+        # Predict result
         Y = np.zeros((data_n, missing_dim))
         
         # For each point
@@ -176,7 +159,7 @@ class GMM:
             mean = np.zeros((self._Gaussian_set_num, missing_dim))
             covar = np.zeros((self._Gaussian_set_num, missing_dim, missing_dim))
             
-            # For each MVN
+            # For each multivariate normal set
             for label in range(self._Gaussian_set_num):
                 # Multivariate normal Regression
                 # Compute prior
@@ -217,15 +200,23 @@ class GMM:
 # Test GMM
 if __name__ == "__main__":
     gmm = GMM()
-    data = np.array([[0.3, 0.6], [0.4, 0.6], [0.5, 0.6], 
-                     [0, 0], [0.1, 0.3], [0.1, 0.2], 
-                     [0.6, 0.2], [0.8, 0.1], [0.4, 0.2], [0.9, 0.0]])
-    gmm.train(data, Gaussian_set_num=3, iteration_t=40)
-    label_value = gmm.predict_label(data)
 
-    x = np.linspace(0, 1, 10)[:, np.newaxis]
+    # Test set
+    data = []
+    with open(path.join(dirname(abspath(__file__)), 'GMM_debug_data.txt'), 'r') as f:
+        for line in f:
+            num = line.strip().split(', ')
+            data.append([float(num[0]), float(num[1])])
+    data = np.array(data)
+
+    gmm.train(data, Gaussian_set_num=6, iteration_t=30)
+    label_value = gmm.predict_label(data)
+    data = np.array(data)
+
+    x = np.linspace(0, 40, 80)[:, np.newaxis]
     pred = gmm.predict_value(x, np.array([0]))
 
+    # Display result
     import matplotlib.pyplot as plt
     from matplotlib.patches import Ellipse
     def draw_ellipse(position, covariance, ax=None, **kwargs):
@@ -246,8 +237,9 @@ if __name__ == "__main__":
             ax.add_patch(Ellipse(position, nsig*width, nsig*height, angle, **kwargs))
 
     plt.figure()
+    for pos, covar, w in zip(gmm.GMM_model['mean'], gmm.GMM_model['covariance'], gmm.GMM_model['p']):
+        draw_ellipse(pos, covar, alpha=w)
     plt.scatter(data[:, 0], data[:, 1], c=label_value)
     plt.scatter(x, pred, c='r')
-    for pos, covar, w in zip(gmm._mean, gmm._covar, gmm._p):
-        draw_ellipse(pos, covar, alpha = w)
+
     plt.show()
