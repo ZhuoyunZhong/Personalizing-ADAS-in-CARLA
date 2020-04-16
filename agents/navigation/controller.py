@@ -263,7 +263,7 @@ class PIDLateralController:
             steer_expect -= 2 * np.pi
         if steer_expect < - np.pi:
             steer_expect += 2 * np.pi
-        print("steer expect: ", steer_expect)
+        #print("steer expect: ", steer_expect)
         
 
         return steer_expect
