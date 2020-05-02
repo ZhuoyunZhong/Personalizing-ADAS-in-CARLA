@@ -68,7 +68,7 @@ class SinLaneChange:
             else:
                 print("Predict dt: %s from GMM" % self._dt)
 
-        self._npts = 15
+        self._npts = int(20*self._dt)
 
     # Return lane change waypoints
     def get_waypoints(self, ref):

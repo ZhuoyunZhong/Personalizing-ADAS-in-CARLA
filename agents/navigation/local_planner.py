@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 
 import carla
 from agents.navigation.controller import VehiclePIDController
-from agents.tools.misc import distance_vehicle, draw_waypoints
+from agents.tools.misc import distance_vehicle, draw_waypoints,get_speed
+# from agents.tools.misc import 
 
 
 class RoadOption(Enum):
@@ -22,6 +23,7 @@ class RoadOption(Enum):
     LANEFOLLOW = 4
     CHANGELANELEFT = 5
     CHANGELANERIGHT = 6
+
 
 
 class LocalPlanner(object):
@@ -66,7 +68,7 @@ class LocalPlanner(object):
         
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
-        self._buffer_size = 5
+        self._buffer_size = 10
         self.waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
@@ -83,8 +85,8 @@ class LocalPlanner(object):
         """
         # default params
         self._dt = 1.0 / 20.0      # 1/F
-        self._target_speed = 30.0  # Km/h
-        self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
+        self._target_speed = 30 #30.0  # Km/h
+        self._sampling_radius = self._target_speed * (1/1) / 3.6  # 1 seconds horizon
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         args_lateral_dict = {
             'K_P': 1.95,
@@ -146,6 +148,9 @@ class LocalPlanner(object):
 
         for _ in range(k):
             last_waypoint = self._waypoints_queue[-1][0]
+            # print("Speed of Vehicle is",get_speed(self._vehicle))
+            # self._sampling_radius = 1 + get_speed(self._vehicle) * 1 / 3.6  
+
             next_waypoints = list(last_waypoint.next(self._sampling_radius))
 
             if len(next_waypoints) == 1:
@@ -226,6 +231,13 @@ class LocalPlanner(object):
         
         # target waypoint
         self.target_waypoint, self._target_road_option = self.waypoint_buffer[0]
+        # a = []
+        # for i in range (len(self.waypoint_buffer)):
+        #     b, _ = self.waypoint_buffer[i]
+        #     a.append(b)
+        # print("Buffer Size is :",len(self.waypoint_buffer))
+        # print("--A--- Size is :",len(a))
+
         
         # move using PID controllers
         control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint, self._current_waypoint)
@@ -233,7 +245,10 @@ class LocalPlanner(object):
         self.update_buffer()
 
         if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+            # draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+            # draw_waypoints(self._vehicle.get_world(), a, self._vehicle.get_location().z + 1.0)
+            a = 5
+            # self._waypoints_queue
 
         return control
 

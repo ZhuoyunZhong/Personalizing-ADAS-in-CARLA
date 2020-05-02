@@ -236,7 +236,12 @@ class ObstacleSensor(object):
         self.transform = carla.Transform(location=self.location, rotation=self.rotation)
         self.sensor = world.try_spawn_actor(obs_sensor_bp, self.transform,
                                             attach_to=self._parent)
-
+        if self._parent is None:
+            print("1 Obstacle sensor error")
+            return
+        if self.sensor is None:
+            print("2 Obstacle sensor error")
+            return
         self.obstacle = None
         self.distance_to_obstacle = None
         self.close_to_obstacle = False

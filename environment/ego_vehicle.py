@@ -95,7 +95,13 @@ class World(object):
 
         # Set up the sensors.
         self.main_rgb_camera = CameraManager(self.player, self.hud)
+        if self.player is None:
+            print("Camera Ego vehicle spawn location occupied.\n Spawning failed!")
+            return
         self.main_rgb_camera.set_sensor(0, notify=False, display_camera=True)
+        if self.player is None:
+            print("RGB Camera error")
+            return
         '''
         self.depth_camera = CameraManager(self.player, self.hud)
         self.depth_camera.set_sensor(3, notify=False)
@@ -107,12 +113,23 @@ class World(object):
         '''
 
         self.obstacle_sensor = ObstacleSensor(self.player, self.hud)
+        if self.player is None:
+            print("Obstacle error")
+            return
         self.collision_sensor = CollisionSensor(self.player, self.hud)
+        if self.player is None:
+            print("Collision error")
+            return
         self.gnss_sensor = GnssSensor(self.player)
-
+        if self.player is None:
+            print("GNSS error")
+            return
         self.front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0)
         self.left_front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-30.0)
         self.left_back_radar = FakeRadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-150.0)
+        if self.player is None:
+            print("Radar error")
+            return
         '''
         # Radars are implemented but not used for high computing resources required
         self.front_radar = RadarSensor(self.player, self.hud, rr='20',
@@ -213,7 +230,7 @@ def game_loop(args):
     try:
         # Connect to client
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2.0)
+        client.set_timeout(5.0)
         # Display setting
         display = pygame.display.set_mode(
             (args.width, args.height),
