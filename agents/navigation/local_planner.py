@@ -6,7 +6,7 @@ import random
 from matplotlib import pyplot as plt
 
 import carla
-from agents.navigation.controller import VehiclePIDController
+from agents.navigation.controller import VehiclePIDController, MPC
 from agents.tools.misc import distance_vehicle, draw_waypoints
 
 
@@ -114,9 +114,11 @@ class LocalPlanner(object):
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         
         
-        self._vehicle_controller = VehiclePIDController(self._vehicle,
-                                                        args_lateral=args_lateral_dict,
-                                                        args_longitudinal=args_longitudinal_dict)
+        # self._vehicle_controller = VehiclePIDController(self._vehicle,
+        #                                                 args_lateral=args_lateral_dict,
+        #                                                 args_longitudinal=args_longitudinal_dict)
+
+        self._vehicle_controller = MPC(self._vehicle)
 
         self._global_plan = False
 
@@ -228,7 +230,11 @@ class LocalPlanner(object):
         self.target_waypoint, self._target_road_option = self.waypoint_buffer[0]
         
         # move using PID controllers
-        control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint, self._current_waypoint)
+        _waypoints = [i for i,_ in self.waypoint_buffer]
+        waypoints = [[points.transform.location.x, points.transform.location.y, points.transform.rotation.yaw] for points in _waypoints]
+        # print("waypoints: ", waypoints)    
+        
+        control = self._vehicle_controller.run_step(self._target_speed, waypoints, self.target_waypoint, self._current_waypoint)
 
         self.update_buffer()
 

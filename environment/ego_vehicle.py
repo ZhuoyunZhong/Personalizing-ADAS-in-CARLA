@@ -260,6 +260,7 @@ def game_loop(args):
                 # control signal to vehicle
                 control = world.agent.run_step(debug=True)
                 control.manual_gear_shift = False
+                print("control", control)
                 world.player.apply_control(control)
 
     finally:
