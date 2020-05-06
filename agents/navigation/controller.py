@@ -519,7 +519,6 @@ class MPC:
         steer_output = steering
         
         print("--------------------------------------")
-        print("   ")
         print("steer_output: ", steer_output[0])
         print("throttle_output: ", throttle_output[0])
         print("brake_output: ", brake_output[0])
