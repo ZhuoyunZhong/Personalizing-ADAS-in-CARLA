@@ -68,7 +68,7 @@ class LocalPlanner(object):
         
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
-        self._buffer_size = 10
+        self._buffer_size = 14
         self.waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
@@ -86,8 +86,6 @@ class LocalPlanner(object):
         # default params
         self._dt = 1.0 / 20.0      # 1/F
         self._target_speed = 30 #30.0  # Km/h
-        self._sampling_radius = self._target_speed * (1/1) / 3.6  # 1 seconds horizon
-        self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         args_lateral_dict = {
             'K_P': 1.95,
             'K_D': 0.01,
@@ -105,26 +103,22 @@ class LocalPlanner(object):
                 self._dt = opt_dict['dt']
             if 'target_speed' in opt_dict:
                 self._target_speed = opt_dict['target_speed']
-            if 'sampling_radius' in opt_dict:
-                self._sampling_radius = self._target_speed * \
-                                        opt_dict['sampling_radius'] / 3.6
             if 'lateral_control_dict' in opt_dict:
                 args_lateral_dict = opt_dict['lateral_control_dict']
             if 'longitudinal_control_dict' in opt_dict:
                 args_longitudinal_dict = opt_dict['longitudinal_control_dict']
 
-        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        
-        
+        # other parameters
+        self._sampling_radius = self._target_speed *(1.0/1.0) / 3.6
+        self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         self._vehicle_controller = VehiclePIDController(self._vehicle,
                                                         args_lateral=args_lateral_dict,
                                                         args_longitudinal=args_longitudinal_dict)
-
         self._global_plan = False
 
         # compute initial waypoints
+        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
-
         self._target_road_option = RoadOption.LANEFOLLOW
         
         # fill waypoint trajectory queue
@@ -231,12 +225,12 @@ class LocalPlanner(object):
         
         # target waypoint
         self.target_waypoint, self._target_road_option = self.waypoint_buffer[0]
-        # a = []
-        # for i in range (len(self.waypoint_buffer)):
-        #     b, _ = self.waypoint_buffer[i]
-        #     a.append(b)
-        # print("Buffer Size is :",len(self.waypoint_buffer))
-        # print("--A--- Size is :",len(a))
+        draw_points = []
+        for i in range (len(self.waypoint_buffer)):
+            draw_point, _ = self.waypoint_buffer[i]
+            draw_points.append(draw_point)
+        #print("Buffer Size is :",len(self.waypoint_buffer))
+        #print("--A--- Size is :",len(draw_points))
 
         
         # move using PID controllers
@@ -246,8 +240,7 @@ class LocalPlanner(object):
 
         if debug:
             # draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
-            # draw_waypoints(self._vehicle.get_world(), a, self._vehicle.get_location().z + 1.0)
-            a = 5
+            draw_waypoints(self._vehicle.get_world(), draw_points, self._vehicle.get_location().z + 1.0)
             # self._waypoints_queue
 
         return control

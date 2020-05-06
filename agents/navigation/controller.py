@@ -141,8 +141,8 @@ class PIDLateralController:
             -1 represent maximum steering to left
             +1 maximum steering to right
         """
-        # return self._pid_control(target_waypoint, self._vehicle.get_transform())
-        return self._stanley_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
+        return self._pid_control(target_waypoint, self._vehicle.get_transform())
+        # return self._stanley_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
 
     def _pid_control(self, waypoint, vehicle_transform):
         """
@@ -153,30 +153,17 @@ class PIDLateralController:
         :return: steering control in the range [-1, 1]
         """
         v_begin = vehicle_transform.location
-
-        print("v_begin:", v_begin)
         v_end = v_begin + carla.Location(x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
                                          y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
-        print("v_end:", v_end)
         
         v_vec = np.array([v_end.x - v_begin.x, v_end.y - v_begin.y, 0.0])
         w_vec = np.array([waypoint.transform.location.x -
                           v_begin.x, waypoint.transform.location.y -
                           v_begin.y, 0.0])
-        
-        print("waypoint:", waypoint)
-        print("v_vec:", v_vec)
-        print("w_vec:", w_vec)
-
         _dot = math.acos(np.clip(np.dot(w_vec, v_vec) /
                                  (np.linalg.norm(w_vec) * np.linalg.norm(v_vec)), -1.0, 1.0))
 
-        print("_dot:", _dot)
-
         _cross = np.cross(v_vec, w_vec)
-
-        print("_cross:", _cross)
-
         if _cross[2] < 0:
             _dot *= -1.0
 
