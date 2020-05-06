@@ -57,7 +57,9 @@ class LearningAgent(Agent):
         self._sin_param = self._model.get_parameter("sin_param")
         self._poly_param = self._model.get_parameter("poly_param")
         self._spline_param = self._model.get_parameter("spline_param")
-        args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01}
+
+        CONTROLLER_TYPE = 'PID' # options:MPC, PID, STANLEY
+        args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01, 'control_type': CONTROLLER_TYPE}
         args_longitudinal_dict = {'K_P': 0.3, 'K_I': 0.2, 'K_D': 0.002}
         self._local_planner.init_controller(opt_dict={'target_speed': self._target_speed,
                                                       'lateral_control_dict': args_lateral_dict,
