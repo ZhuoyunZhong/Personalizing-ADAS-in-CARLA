@@ -335,6 +335,10 @@ class CameraSet(object):
             carla.Transform(carla.Location(x=0.1, y=-0.3, z=1.3)),
             carla.Transform(carla.Location(x=0.6, y=-1.0, z=1), carla.Rotation(yaw=-150)),
             carla.Transform(carla.Location(x=0.6, y=1.0, z=1), carla.Rotation(yaw=150))]
+        self._transform_index = 0
+        self._transform_list = [
+            carla.Transform(carla.Location(x=0.1, y=-0.3, z=1.3)),
+            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
         self._sensors_param = [
             ['sensor.camera.rgb', cc.Raw, 'Camera RGB Main'],
             ['sensor.camera.rgb', cc.Raw, 'Camera RGB Left_rearview'],
@@ -441,6 +445,10 @@ class CameraSet(object):
     def render(self, display):
         if self.surface is not None:
             display.blit(self.surface, (0, 0))
+
+    def toggle_camera(self):
+        self._transform_index = (self._transform_index + 1) % len(self._transform_list)
+        self.sensor1.set_transform(self._transform_list[self._transform_index])
 
     def destroy(self):
         for sensor in self._sensor_list:
