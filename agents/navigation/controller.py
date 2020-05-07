@@ -141,8 +141,8 @@ class PIDLateralController:
             -1 represent maximum steering to left
             +1 maximum steering to right
         """
-        # return self._pid_control(target_waypoint, self._vehicle.get_transform())
-        return self._pid_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
+        return self._pid_control(target_waypoint, self._vehicle.get_transform())
+        # return self._stanley_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
 
     def _pid_control(self, waypoint, vehicle_transform):
         """

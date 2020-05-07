@@ -47,8 +47,7 @@ class World(object):
         self._spawn_loc = [50, 7.5, 0.5]    # spawn location
         self._actor_filter = actor_filter   # vehicle type
         self.player = None                  # ego vehicle
-        self.obstacle_sensor = None         # sensors
-        self.collision_sensor = None
+        self.collision_sensor = None        # sensors
         self.gnss_sensor = None
         self._ego_list = []
         # Other actors
@@ -94,8 +93,8 @@ class World(object):
             return
 
         # Set up the sensors.
-        self.main_rgb_camera = CameraManager(self.player, self.hud)
-        self.main_rgb_camera.set_sensor(0, notify=False, display_camera=True)
+        self.main_rgb_camera = CameraSet(self.player, self.hud)
+        
         '''
         self.depth_camera = CameraManager(self.player, self.hud)
         self.depth_camera.set_sensor(3, notify=False)
@@ -106,7 +105,6 @@ class World(object):
         self.lidar.set_sensor(6, notify=False)
         '''
 
-        self.obstacle_sensor = ObstacleSensor(self.player, self.hud)
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
 
@@ -130,11 +128,10 @@ class World(object):
         '''
 
         self._ego_list = [
-            self.main_rgb_camera.sensor,
+            self.main_rgb_camera,
             #self.depth_camera.sensor,
             #self.segmentation_camera.sensor,
             #self.lidar.sensor,
-            self.obstacle_sensor.sensor,
             self.collision_sensor.sensor,
             self.gnss_sensor.sensor,
             self.front_radar,
