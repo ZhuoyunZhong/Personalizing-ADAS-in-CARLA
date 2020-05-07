@@ -30,7 +30,6 @@ class Model:
         self._radar_list = []
         self._poly_points = []
         self._sin_points = []
-        self._spline_points = []
 
     def load_model(self):
         # if file doesn't exist, create one
@@ -40,9 +39,7 @@ class Model:
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
-                     "sin_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0},
-                     "spline_param": {"lon_dis": 30.0, "lat_dis": -3.5,
-                                      "tck": splrep([0, 1, 2, 28, 29, 30], [0, 0, 0, -3.5, -3.5, -3.5])}}
+                     "sin_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0}}
             with open(self._model_path, 'wb') as f:
                 pickle.dump(model, f)
 
@@ -61,7 +58,6 @@ class Model:
             if "points" in dict_param:
                 self._poly_points.append(dict_param["points"])
                 self._sin_points.append(dict_param["points"])
-                self._spline_points.append(dict_param["points"])
             if "radars" in dict_param:
                 self._radar_list.append(dict_param["radars"])
 
@@ -295,11 +291,6 @@ class Model:
         self._sin_points = []
         print("Sinusoidal Parameters Updated")
 
-    # TODO
-    def update_spline_param(self, debug=False):
-        if len(self._spline_points) < 50:
-            return
-
     def update_safe_distance(self, debug=False):
         # Only consider the lowest 10% of the distance value list
         percentage = 0.2
@@ -352,10 +343,11 @@ class Model:
 
     # End collecting data
     def end_collect(self):
+        '''
         self.update_sin_param(debug=True)
-        #self.update_poly_param()
-        #self.update_spline_param()
+        self.update_poly_param()
         self.update_safe_distance()
         self.update_target_speed()
+        '''
 
         self.store_new_model()

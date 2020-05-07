@@ -9,7 +9,7 @@ from agents.navigation.agent import Agent, AgentState
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
-from agents.navigation.lange_change import PolyLaneChange, SinLaneChange, SplineLaneChange
+from agents.navigation.lange_change import PolyLaneChange, SinLaneChange
 from agents.learning.model import Model
 from agents.tools.misc import transform_to_frame
 
@@ -32,7 +32,6 @@ class LearningAgent(Agent):
         self._target_speed = None
         self._sin_param = None
         self._poly_param = None
-        self._spline_param = None
         # Local plannar
         self._local_planner = LocalPlanner(world.player)
         self.update_parameters()
@@ -56,7 +55,6 @@ class LearningAgent(Agent):
         self._target_speed = self._model.get_parameter("target_speed")
         self._sin_param = self._model.get_parameter("sin_param")
         self._poly_param = self._model.get_parameter("poly_param")
-        self._spline_param = self._model.get_parameter("spline_param")
         args_lateral_dict = {'K_P': 1.0, 'K_I': 0.4, 'K_D': 0.01}
         args_longitudinal_dict = {'K_P': 0.3, 'K_I': 0.2, 'K_D': 0.002}
         self._local_planner.init_controller(opt_dict={'target_speed': self._target_speed,
@@ -250,17 +248,6 @@ class LearningAgent(Agent):
             '''
             lane_changer = PolyLaneChange(self._world_obj, self._poly_param)
             lane_change_plan = lane_changer.get_waypoints(ref)
-            self._local_planner.set_local_plan(lane_change_plan)
-            '''
-            '''
-            lane_changer = SplineLaneChange(self._world_obj, self._spline_param)
-            # Plan first time without extra point
-            lane_change_plan = lane_changer.get_waypoints(self._target_speed, ref)
-            # Find global waypoint closest to the end of the plan
-            end_point = self._map.get_waypoint(lane_change_plan[-1][0].transform.location)
-            extras = [[end_point.transform.location.x, end_point.transform.location.y]]
-            # Plan second time with extra global waypoint
-            lane_change_plan = lane_changer.get_waypoints(self._target_speed, ref, extras)
             self._local_planner.set_local_plan(lane_change_plan)
             '''
             # replan globally with new vehicle position after lane changing
