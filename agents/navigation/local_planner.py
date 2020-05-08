@@ -227,7 +227,7 @@ class LocalPlanner(object):
         self.update_buffer()
 
         if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 0.8)
 
         return control
 

@@ -72,7 +72,7 @@ class HUD(object):
             '',
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)),
             u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
-            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
+            'Location:% 20s' % ('(% 3.1f, % 3.1f, % 3.1f)' % (t.location.x, t.location.y, t.location.z)),
             '']
             # 'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
             # 'Height:  % 18.0f m' % t.location.z,
@@ -85,7 +85,7 @@ class HUD(object):
                 ('Reverse:', c.reverse),
                 ('Hand brake:', c.hand_brake),
                 ('Manual:', c.manual_gear_shift),
-                'Gear:        %s' % {-1: 'R', 0: 'N'}.get(c.gear, c.gear)]
+                 'Gear:         %s' % {-1: 'R', 0: 'N'}.get(c.gear, c.gear)]
         elif isinstance(c, carla.WalkerControl):
             self._info_text += [
                 ('Speed:', c.speed, 0.0, 5.556),
@@ -213,8 +213,6 @@ class HelpText(object):
         lines = ["F1           : toggle HUD",
                  "H            : toggle help",
                  "ESC          : quit",
-                 "P            : toggle autopilot",
-                 "L            : toggle learning mode",
                  "C            : change weather (Shift+C reverse)",
                  "TAB          : change sensor position",
                  "`            : change sensor",
@@ -227,12 +225,10 @@ class HelpText(object):
                  "M            : toggle manual transmission",
                  ",/.          : gear up/down",
                  "",
-                 "Backspace    : reborn",
-                 "R            : toggle recording images to disk",
-                 "CTRL + R     : toggle recording of simulation",
-                 "CTRL + P     : start replaying last recorded simulation",
-                 "CTRL + +     : increments the start time of the replay by 1 s",
-                 "CTRL + -     : decrements the start time of the replay by 1 s"]
+                 "P            : toggle autopilot",
+                 "L            : toggle learning mode",
+                 "T            : train the model with existing data",
+                 "Backspace    : reborn"]
         self.font = font
         self.dim = (800, len(lines) * 22 + 12)
         self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])
