@@ -7,3 +7,7 @@ __pycache__/
 
 # Ignore pickle
 *.pickle
+
+# Ignore personal csv
+*.csv
+!/data/test_train_set/*.csv

@@ -8,6 +8,8 @@ from os import path
 from os.path import dirname, abspath
 
 from scipy.interpolate import splrep
+from scipy.stats import norm
+from sklearn.mixture import GaussianMixture
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -25,11 +27,7 @@ class Model:
         self.load_model()
 
         # Learning data container
-        self._distance_list = []
-        self._velocity_list = []
-        self._radar_list = []
-        self._poly_points = []
-        self._sin_points = []
+        self._state_list = []
 
     def load_model(self):
         # if file doesn't exist, create one
@@ -48,34 +46,49 @@ class Model:
             model = pickle.load(f)
         self._model = model
 
-    # Collect data
-    def collect(self, dict_param):
-        if dict_param:
-            if "velocity" in dict_param:
-                self._velocity_list.append(dict_param["velocity"])
-            if "distance" in dict_param:
-                self._distance_list.append(dict_param["distance"])
-            if "points" in dict_param:
-                self._poly_points.append(dict_param["points"])
-                self._sin_points.append(dict_param["points"])
-            if "radars" in dict_param:
-                self._radar_list.append(dict_param["radars"])
+    # Collect data and 
+    def collect(self, param):
+        self._state_list.append(param)
+    
+    # End collecting and save data in files
+    def end_collect(self):
+        self.update_target_speed()
+        self.update_safe_distance()
+        #self.update_sin_param()
+        #self.update_poly_param()
+        
+        # Temporary
+        self._state_list.append([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        self.save_data(np.array(self._state_list), "states.csv")
 
-    # Return a certain parameter value
-    def get_parameter(self, keyword):
-        return self._model[keyword]
-
-    @staticmethod
-    # update parameters according to found new one
-    def change_param(current, new, max_change_rate=0.1):
-        if abs(new - current) < max_change_rate * abs(current):
-            result = new
+    # Save data in a file
+    def save_data(self, data, file_name):
+        train_path = path.join(self._data_folder, file_name)
+        data = np.atleast_2d(data)
+        if path.exists(train_path):
+            with open(train_path, 'rb') as f:
+                train_data = np.loadtxt(f, delimiter=",")
+                train_data = np.atleast_2d(train_data)
+                train_data = np.append(train_data, data, axis=0)
         else:
-            if new > current:
-                result = current + max_change_rate * abs(current)
-            else:
-                result = current - max_change_rate * abs(current)
-        return result
+            train_data = data
+
+        with open(train_path, 'wb') as f:
+            np.savetxt(f, train_data, delimiter=",")
+        
+    # Load data from a file
+    def load_data(self, file_name):
+        train_path = path.join(self._data_folder, file_name)
+        train_data = None
+        if path.exists(train_path):
+            with open(train_path, 'rb') as f:
+                train_data = np.loadtxt(f, delimiter=",")
+                train_data = np.atleast_2d(train_data)
+        else:
+            print(file_name, " does not exist.")
+
+        return train_data
+
 
     @staticmethod
     # Return points indicating lane changing process
@@ -291,7 +304,8 @@ class Model:
         self._sin_points = []
         print("Sinusoidal Parameters Updated")
 
-    def update_safe_distance(self, debug=False):
+
+    def update_acc(self, debug=False):
         # Only consider the lowest 10% of the distance value list
         percentage = 0.2
         length = int(percentage * len(self._distance_list))
@@ -310,44 +324,87 @@ class Model:
         self._distance_list = []
         print("Safe Distance Updated")
 
-    def update_target_speed(self):
-        # Select ones while going straight
-        speed_straight_list = []
-        for v in self._velocity_list:
-            if abs(v.x) > 4 and abs(v.x) / abs(v.y) > 30:
-                speed = 3.6 * v.x # km/h
-                speed_straight_list.append(speed)
+    def train_acc(self):
+        pass
 
-        # Only consider the largest 10% of the speed value list
-        percentage = 0.2
-        length = int(percentage * len(speed_straight_list))
-        if length <= 10:
-            return
 
-        current_speed = self.get_parameter("target_speed")
+    def update_target_speed(self, debug=True):
+        # Get acceleration and speed
+        states = np.array(self._state_list)
+        time_stamp = states[:,0]
+        speed = states[:,8]
 
-        # get new value
-        speed_straight_list.sort(reverse=True)
-        new_speed = sum(speed_straight_list[0:length]) / length
-        # update
-        target_speed = self.change_param(current_speed, new_speed)
+        acceleration = (speed[1:]-speed[0:-1]) / ((time_stamp[1:]-time_stamp[0:-1])/1000.0)
+        speed = speed[1:]
 
-        self._model["target_speed"] = target_speed
-        self._velocity_list = []
-        print("Target Speed Updated")
+        # get speed while it is stable and no vehicle ahead
+        index = (abs(acceleration) < 1) & (states[1:, 9] == 100)
+        stable_speed = speed[index]
+        # select half of the highest speed
+        stable_speed = np.sort(stable_speed)[::-1]
+        stable_speed = stable_speed[0:stable_speed.size/4]
+
+        if stable_speed.size != 0:
+            gmm = GaussianMixture(n_components=3, covariance_type='diag')
+            result = gmm.fit(stable_speed[:, np.newaxis])
+            weights, means, covars = result.weights_, result.means_, result.covariances_
+
+            # Select the gaussian distribution with the maximum mean
+            max_index = np.argmax(means)
+            mean, covar = means[max_index][0], covars[max_index][0]
+
+            if debug:
+                plt.hist(stable_speed, bins = stable_speed.size, ec='red', alpha=0.5)
+                x = np.linspace(stable_speed[0], stable_speed[-1], stable_speed.size).reshape(-1,1)
+                y1 = weights[0] * norm.pdf(x, means[0], np.sqrt(covars[0])).ravel()
+                y2 = weights[1] * norm.pdf(x, means[1], np.sqrt(covars[1])).ravel()
+                y3 = weights[2] * norm.pdf(x, means[2], np.sqrt(covars[2])).ravel()
+                plt.plot(x, y1+y2+y3, c='black')
+                plt.plot(x, y1, c='red')
+                plt.plot(x, y2, c='green')
+                plt.plot(x, y3, c='blue')
+                plt.show()
+
+            # get new value
+            self.save_data(np.array([mean, covar]), "target_speed_train_data.csv")
+            print("Target Speed Data Saved")
+        else:
+            print("No availiable speed data")
+
+    # Train target speed
+    def train_target_speed(self):
+        # Train target speed
+        data = self.load_data("target_speed_train_data.csv")
+        if data is not None and data.size != 0:
+            # Update mean and covariance
+            means = data[:, 0]
+            covars = data[:, 1]
+            target_speed = means[0]
+            speed_covar = covars[0]
+
+            for i in range(means.size-1):
+                u1 = target_speed
+                s1 = speed_covar
+                u2 = means[i+1]
+                s2 = covars[i+1]
+
+                target_speed = (s1*u2+s2*u1) / (s1+s2)
+                speed_covar = s1*s2 / (s1+s2)
+
+            self._model["target_speed"] = target_speed
+            print("Target Speed Trained")
+            print("New Target Speed: ", target_speed)
+        else:
+            print("No target speed data")
+
+
+    # Train the model according to saved driver's data
+    def train_new_model(self):
+        self.train_target_speed()
+        self.train_acc()
+        self.store_new_model()
 
     # Store learned result
     def store_new_model(self):
         with open(self._model_path, 'wb') as f:
             pickle.dump(self._model, f)
-
-    # End collecting data
-    def end_collect(self):
-        '''
-        self.update_sin_param(debug=True)
-        self.update_poly_param()
-        self.update_safe_distance()
-        self.update_target_speed()
-        '''
-
-        self.store_new_model()

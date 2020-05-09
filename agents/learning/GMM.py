@@ -16,14 +16,15 @@ import numpy as np
 # [V, H, DL, DF] -- GMM --> [t_lat]
 
 class GMM:
-    def __init__(self):
+    def __init__(self, data_file="GMM_train_data.csv", 
+                    model_file="GMM_model.pickle", iteration=40, Gaussian_set_num=6):
         self._data_folder = path.join(dirname(dirname(dirname(abspath(__file__)))), "data")
-        self._train_file_path = path.join(self._data_folder, "GMM_train_data.csv")
-        self._model_file_path = path.join(self._data_folder, "GMM_model.pickle")
+        self._train_file_path = path.join(self._data_folder, data_file)
+        self._model_file_path = path.join(self._data_folder, model_file)
         # Training parameters
-        self._iteration_t = 40
+        self._iteration_t = iteration
         self._loss = 0
-        self._Gaussian_set_num = 6
+        self._Gaussian_set_num = Gaussian_set_num
         # Model
         self._p = None
         self._mean = None
@@ -50,7 +51,7 @@ class GMM:
             self._mean = self.GMM_model['mean']
             self._covar = self.GMM_model['covariance']
         print('GMM model loaded')
-    
+
     def _initial_GMM_params(self, data):
         # K-means cluster
         data_size, dim = data.shape[0], data.shape[1]

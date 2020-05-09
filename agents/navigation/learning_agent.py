@@ -63,33 +63,51 @@ class LearningAgent(Agent):
 
     # Start learning by collecting data
     def collect(self):
-        dict_param = {}
-        # Collect points while driving
-        dict_param.update({"points": [self._vehicle.get_location().x,
-                                      self._vehicle.get_location().y,
-                                      self._vehicle.get_location().z,
-                                      self._vehicle.get_transform().rotation.yaw,
-                                      pygame.time.get_ticks()]})
+        # State for each step
+        personalization_param = []
 
-        # Collect radar information while driving
-        dict_param.update({"radars": [self._front_r,
-                                      self._left_front_r,
-                                      self._left_back_r]})
+        # Time stamp
+        personalization_param.extend([pygame.time.get_ticks()])
 
-        # Collect speed while driving
-        v = self._world_obj.player.get_velocity()
-        dict_param.update({"velocity": v})
+        # Collect vehicle position
+        t = self._vehicle.get_transform()
+        personalization_param.extend([t.location.x,
+                                      t.location.y,
+                                      t.location.z,
+                                      t.rotation.yaw])
 
-        # Collect distance to obstacle in front
+        # Collect vehicle velocity and speed
+        v = self._vehicle.get_velocity()
+        personalization_param.extend([v.x, v.y, v.z, math.sqrt(v.x**2 + v.y**2 + v.z**2)])                    
+
+        # Collect radar information
+        front_dis = 100
+        front_vel = 50
+        left_front_dis = 100
+        left_front_vel = 50
+        left_back_dis = -100
+        left_back_vel = 0
         if self._front_r:
-            dict_param.update({"distance": self._front_r[1][0]})
+            front_dis = self._front_r[1][0]
+            front_vel = self._front_r[2][0]
+        if self._left_front_r:
+            left_front_dis = self._left_front_r[1][0]
+            left_front_vel = self._left_front_r[2][0]
+        if self._left_back_r:
+            left_back_dis = self._left_back_r[1][0]
+            left_back_vel = self._left_back_r[2][0]
+        personalization_param.extend([front_dis, left_front_dis, left_back_dis, 
+                                      front_vel, left_front_vel, left_back_vel])
 
-        self._model.collect(dict_param)
+        self._model.collect(personalization_param)
 
-    # End learning mode
+    # End collection
     def end_collect(self):
         self._model.end_collect()
-        self.update_parameters()
+
+    # Train model
+    def train_model(self):
+        self._model.train_new_model()
 
     # Set global destination and get global waypoints
     def set_destination(self, location):
@@ -184,7 +202,7 @@ class LearningAgent(Agent):
                 self._state = AgentState.BLOCKED_BY_VEHICLE
                 # The vehicle is driving at a certain speed
                 # There is enough space
-                if self._vehicle.get_velocity().x > 5 and \
+                if 200 > self._vehicle.get_velocity().x > 5 and \
                 self._vehicle.get_location().y > 7:
                     self._state = AgentState.PREPARE_LANE_CHANGING
 
