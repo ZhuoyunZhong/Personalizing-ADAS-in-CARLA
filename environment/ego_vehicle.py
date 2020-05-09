@@ -20,8 +20,9 @@ import pygame
 
 from manual_control import KeyboardControl
 from load_actors import spawn_surrounding_vehicles
-from sensors import *
-from hud import *
+from sensors import FakeRadarSensor, RadarSensor, CollisionSensor, GnssSensor, \
+                    CameraSet, CameraManager
+from hud import get_actor_display_name, HUD
 
 try:
     sys.path.append('../')
@@ -33,7 +34,7 @@ from agents.navigation.learning_agent import LearningAgent
 
 
 class World(object):
-    def __init__(self, carla_world, hud, actor_filter, agent_str, scene):
+    def __init__(self, carla_world, hud, spawn_location, actor_filter, agent_str, scene):
         # World
         self.world = carla_world
         self.map = self.world.get_map()
@@ -44,7 +45,7 @@ class World(object):
         self._weather_presets = None
         self.find_weather_presets()
         # Ego and sensors
-        self._spawn_loc = [50, 7.5, 0.5]    # spawn location
+        self._spawn_loc = spawn_location    # spawn location
         self._actor_filter = actor_filter   # vehicle type
         self.player = None                  # ego vehicle
         self.collision_sensor = None        # sensors
@@ -149,11 +150,11 @@ class World(object):
         if self.agent_name == "Learning":
             self.agent = LearningAgent(self)
             # destination Setting
-            self.agent.set_destination((230, 39, 0))
+            self.agent.set_destination((25, 195, 0))
         elif self.agent_name == "Basic":
             self.agent = BasicAgent(self.player)
             # destination Setting
-            self.agent.set_destination((230, 39, 0))
+            self.agent.set_destination((25, 195, 0))
         else:
             self.agent = RoamingAgent(self.player)
 
@@ -218,7 +219,7 @@ def game_loop(args):
         hud = HUD(args.width, args.height)
 
         # Create ego world and spawn ego vehicle
-        world = World(client.get_world(), hud, args.filter, args.agent, args.scene)
+        world = World(client.get_world(), hud, args.location, args.filter, args.agent, args.scene)
         if world.player is None:
             return
 
@@ -268,17 +269,19 @@ def game_loop(args):
 
 def main():
     # Arguments
-    argparser = argparse.ArgumentParser(description='CARLA Ego Vehicle Client')
-    argparser.add_argument('-v', '--verbose', action='store_true', dest='debug',
-                           help='print debug information')
-    argparser.add_argument('--host', metavar='H', default='127.0.0.1',
-                           help='IP of the host server (default: 127.0.0.1)')
-    argparser.add_argument('-p', '--port', metavar='P', default=2000, type=int,
-                           help='TCP port to listen to (default: 2000)')
-    argparser.add_argument('--res', metavar='WIDTH x HEIGHT', default='1280x720',
-                           help='window resolution')
-    argparser.add_argument('--filter', metavar='PATTERN', default='vehicle.tesla.model3',
-                           help='actor filter (default: "vehicle.tesla.model3")')
+    argparser = argparse.ArgumentParser(description="CARLA Ego Vehicle Client")
+    argparser.add_argument("-v", "--verbose", action="store_true", dest="debug",
+                           help="print debug information")
+    argparser.add_argument("--host", metavar="H", default="127.0.0.1",
+                           help="IP of the host server (default: 127.0.0.1)")
+    argparser.add_argument("-p", "--port", metavar="P", default=2000, type=int,
+                           help="TCP port to listen to (default: 2000)")
+    argparser.add_argument("--res", metavar="WIDTH x HEIGHT", default="1280x720",
+                           help="window resolution")
+    argparser.add_argument("-l", "--location", metavar="Spawn Location", default=[50, 7.5, 0.5], type=list,
+                           help="spawn location (default: [50, 7.5, 0.5])")
+    argparser.add_argument("--filter", metavar="PATTERN", default="vehicle.tesla.model3",
+                           help="actor filter (default: 'vehicle.tesla.model3')")
     argparser.add_argument("-a", "--agent", type=str, choices=["Roaming", "Basic", "Learning"], default="Learning",
                            help="select which agent to run")
     argparser.add_argument("-s", "--scene", type=str, choices=['0', '1', '2'], default='0',
@@ -288,16 +291,16 @@ def main():
 
     # Logging process
     log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
-    logging.info('listening to server %s:%s', args.host, args.port)
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+    logging.info("listening to server %s:%s", args.host, args.port)
 
     # Start the loop
     try:
         game_loop(args)
 
     except KeyboardInterrupt:
-        print('\nCancelled by user. Bye!')
+        print("\nCancelled by user. Bye!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

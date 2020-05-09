@@ -75,7 +75,7 @@ class FakeRadarSensor(object):
         self.obstacle = event.other_actor
         self.distance = event.distance
         # Only track other dynamic objects
-        if "static" in self.obstacle.type_id or self.obstacle.id == self._parent.id:
+        if "vehicle" not in self.obstacle.type_id or self.obstacle.id == self._parent.id:
             self.obstacle = None
             self.distance = None
             return
@@ -96,7 +96,7 @@ class FakeRadarSensor(object):
         vel_vec = carla.Vector3D(x=actor_vel.x, y=actor_vel.y, z=actor_vel.z)
         rel_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
                                      vel_vec, inverse=True)
-        self.rel_vel = rel_vel.x
+        self.rel_vel = [rel_vel.x, rel_vel.y, rel_vel.z]
 
         if self._debug:
             draw_vec = carla.Vector3D(x=obs_pos.x, y=obs_pos.y, z=obs_pos.z+1)
