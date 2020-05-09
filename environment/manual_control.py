@@ -192,11 +192,11 @@ class KeyboardControl(object):
 
     # Vehicle Control
     def _parse_vehicle_keys(self, keys, milliseconds):
-        throttle_increment = 7e-4 * milliseconds
+        throttle_increment = 5e-4 * milliseconds
         if keys[K_UP] or keys[K_w]:
-            self._control.throttle = min(abs(self._control.throttle + throttle_increment), 0.9)
+            self._control.throttle = min(abs(self._control.throttle + throttle_increment), 0.7)
         else:
-            self._control.throttle = max(self._control.throttle - throttle_increment, 0)
+            self._control.throttle = max(self._control.throttle - throttle_increment, 0.2)
         steer_increment = 5e-4 * milliseconds
         if keys[K_LEFT] or keys[K_a]:
             if self._steer_cache > 0:
