@@ -39,7 +39,7 @@ class Model:
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
-                     "sin_param": {"lon_vel": 7.0, "lat_dis": -3.5, "dt": 4.0}}
+                     "sin_param": {"lon_vel": 5.0, "lat_dis": -3.5, "dt": 4.0}}
             with open(self._model_path, 'wb') as f:
                 pickle.dump(model, f)
 
