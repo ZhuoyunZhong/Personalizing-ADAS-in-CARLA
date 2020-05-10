@@ -79,7 +79,7 @@ class LearningAgent(Agent):
 
         # Collect vehicle velocity and speed
         v = self._vehicle.get_velocity()
-        personalization_param.extend([v.x, v.y, v.z, self._get_velocity()])                    
+        personalization_param.extend([v.x, v.y, v.z, self._get_speed()])                    
 
         # Collect radar information
         front_dis = 100

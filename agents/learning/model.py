@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from agents.tools.misc import get_poly_y, transform_to_frame
+from GMM import GMM
 
 
 # A Model class to store personalized parameters
@@ -38,7 +39,7 @@ class Model:
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
-                     "sin_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0}}
+                     "sin_param": {"lon_vel": 7.0, "lat_dis": -3.5, "dt": 4.0}}
             with open(self._model_path, 'wb') as f:
                 pickle.dump(model, f)
 
@@ -55,8 +56,8 @@ class Model:
     def end_collect(self):
         self.update_target_speed()
         self.update_safe_distance()
-        #self.update_sin_param()
-        #self.update_poly_param()
+        self.update_sin_param(debug=True)
+        self.update_poly_param(debug=True)
         
         # Temporary
         self._state_list.append([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -94,26 +95,26 @@ class Model:
     def get_parameter(self, keyword):
         return self._model[keyword]
 
-
     @staticmethod
     # Return points indicating lane changing process
     def get_lane_changing_points(points):
-        x_ref, y_ref, z_ref, yaw_ref, t_ref = points[0]
+        points = np.atleast_2d(points)
+        t_ref, x_ref, y_ref, z_ref, yaw_ref = points[0,:]
 
         # In matrix form
-        points_m = np.transpose(np.array(points))
+        points_m = np.transpose(points)
 
         # Transform back to (0, 0)
         ref_frame = carla.Transform(carla.Location(x=x_ref, y=y_ref, z=z_ref),
                                     carla.Rotation(yaw=yaw_ref, pitch=0, roll=0))
-        points_v = transform_to_frame(ref_frame, points_m[0:3, :])
+        points_v = transform_to_frame(ref_frame, points_m[1:4, :])
 
         # Get points (x, t) and (y, t)
+        t_v = points_m[0,:] / 1000.0
         x_v = points_v[0,:]
         y_v = points_v[1,:]
         z_v = points_v[2,:]
-        t_v = points_m[4,:] / 1000
-
+        
         # Find out which part is lane changing
         e_y = y_v[1:] - y_v[0:-1]
         index = e_y < -0.02  # Left
@@ -136,7 +137,28 @@ class Model:
         #Temp Not using z_v for now
         return x_v, y_v, t_v, start_index
 
-    # Learn from collected data to update value
+
+    ## Learn from collected data to update value ##
+    # Helper function for polynomial
+    @staticmethod
+    def get_2d_poly_param(lon_dis, lat_dis, dt):
+        desired_lon_speed = lon_dis/dt
+
+        # Calculate new polynomial parameters
+        M = np.array([[1, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0, 0],
+                    [0, 0, 2, 0, 0, 0],
+                    [1, dt, dt ** 2, dt ** 3, dt ** 4, dt ** 5],
+                    [0, 1, 2 * dt, 3 * dt ** 2, 4 * dt ** 3, 5 * dt ** 4],
+                    [0, 0, 2, 6 * dt, 12 * dt ** 2, 20 * dt ** 3]])
+        state_lon = np.array([0, desired_lon_speed, 0, lon_dis, desired_lon_speed, 0])
+        state_lat = np.array([0, 0, 0, lat_dis, 0, 0])
+
+        lon_param = np.matmul(np.linalg.inv(M), state_lon)
+        lat_param = np.matmul(np.linalg.inv(M), state_lat)
+
+        return lon_param, lat_param
+    
     def update_poly_param(self, debug=False):
         """
         1, Polynomial curve definition comes from:
@@ -149,165 +171,145 @@ class Model:
         Learning lane change trajectories from on-road driving data.
         IEEE Intelligent Vehicles Symposium, Proceedings. 885-890. 10.1109/IVS.2012.6232190.
         """
-        if len(self._poly_points) < 50:
-            return
-
-        current_poly_param = self.get_parameter("poly_param")
-        current_lon_param = current_poly_param["lon_param"]
-        current_lat_param = current_poly_param["lat_param"]
-        current_lon_dis = current_poly_param["lon_dis"]
-        current_lat_dis = current_poly_param["lat_dis"]
-        current_dt = current_poly_param["dt"]
-
+        states = np.array(self._state_list)
+        points = states[:,0:5]
+        
         # Get points while lane changing
-        x_v, y_v, t_v, start_index = self.get_lane_changing_points(self._poly_points)
-        if len(x_v) < 10:
-            return
+        x_v, y_v, t_v, start_index = self.get_lane_changing_points(points)
 
-        # New lane changing parameters
-        new_dt = t_v[-1] - t_v[0]
-        new_lon_dis = x_v[-1] - x_v[0]
-        new_lat_dis = y_v[-1] - y_v[0]
-        # update values
-        dt = self.change_param(current_dt, new_dt)
-        lon_dis = self.change_param(current_lon_dis, new_lon_dis)
-        lat_dis = self.change_param(current_lat_dis, new_lat_dis)
-        desired_lon_speed = lon_dis/dt
+        if x_v.size > 20:
+            # New lane changing parameters
+            dt = t_v[-1] - t_v[0]
+            lon_dis = x_v[-1] - x_v[0]
+            lat_dis = y_v[-1] - y_v[0]
 
-        # Calculate new polynomial parameters
-        M = np.array([[1, 0, 0, 0, 0, 0],
-                      [0, 1, 0, 0, 0, 0],
-                      [0, 0, 2, 0, 0, 0],
-                      [1, dt, dt ** 2, dt ** 3, dt ** 4, dt ** 5],
-                      [0, 1, 2 * dt, 3 * dt ** 2, 4 * dt ** 3, 5 * dt ** 4],
-                      [0, 0, 2, 6 * dt, 12 * dt ** 2, 20 * dt ** 3]])
-        state_lon = np.array([0, desired_lon_speed, 0, lon_dis, desired_lon_speed, 0])
-        state_lat = np.array([0, 0, 0, lat_dis, 0, 0])
+            if debug:
+                lon_param, lat_param = self.get_2d_poly_param(lon_dis, lat_dis, dt)
+                plt.figure(figsize=(3, 9))
+                plt.subplot(312)
+                plt.xlabel('time (t)')
+                plt.ylabel('Longitudinal (m)')
+                t_after = np.linspace(0, dt, 100)
+                x_after = get_poly_y(t_after, lon_param)
+                plt.plot(t_after, x_after, color='g')
+                plt.scatter(t_v, x_v, marker='x', color='k', s=5)
+                plt.subplot(313)
+                plt.xlabel('time (t)')
+                plt.ylabel('Lateral (m)')
+                y_after = get_poly_y(t_after, lat_param)
+                plt.plot(t_after, y_after, color='g')
+                plt.scatter(t_v, y_v, marker='x', color='k', s=5)
+                plt.subplot(311)
+                plt.xlabel('Longitudinal (m)')
+                plt.ylabel('Lateral (m)')
+                plt.plot(x_after, y_after, color='g')
+                plt.scatter(x_v, y_v, marker='x', color='k', s=5)
+                plt.show()
 
-        lon_param = np.matmul(np.linalg.inv(M), state_lon)
-        lat_param = np.matmul(np.linalg.inv(M), state_lat)
+            # Save data
+            self.save_data(np.array([lon_dis, lat_dis, dt]), "poly_train_data.csv")
+            print("Polynomial Parameters Data Saved")
+        else:
+            print("No availiable polynomial data")
 
-        if debug:
-            plt.figure(figsize=(3, 9))
-            plt.subplot(312)
-            plt.xlabel('time (t)')
-            plt.ylabel('Longitudinal (m)')
-            t_after = np.linspace(0, dt, 100)
-            x_after = get_poly_y(t_after, lon_param)
-            t_curr = np.linspace(0, current_dt, 100)
-            x_curr = get_poly_y(t_curr, current_lon_param)
-            plt.plot(t_after, x_after, color='g')
-            plt.plot(t_curr, x_curr, color='y')
-            plt.scatter(t_v, x_v, marker='x', color='k', s=5)
-            plt.subplot(313)
-            plt.xlabel('time (t)')
-            plt.ylabel('Lateral (m)')
-            y_after = get_poly_y(t_after, lat_param)
-            y_curr = get_poly_y(t_curr, current_lat_param)
-            plt.plot(t_after, y_after, color='g')
-            plt.plot(t_curr, y_curr, color='y')
-            plt.scatter(t_v, y_v, marker='x', color='k', s=5)
-            plt.subplot(311)
-            plt.xlabel('Longitudinal (m)')
-            plt.ylabel('Lateral (m)')
-            plt.plot(x_after, y_after, color='g')
-            plt.plot(x_curr, y_curr, color='y')
-            plt.scatter(x_v, y_v, marker='x', color='k', s=5)
-            plt.show()
+    # Train polynomial parameters
+    def train_poly_param(self):
+        data = self.load_data("GMM_train_data.csv")
+        if data is not None and data.size != 0:
+            lon_dis = np.mean(data[:,0])
+            lat_dis = np.mean(data[:,1])
+            dt = np.mean(data[:,2])
+            lon_param, lat_param = self.get_2d_poly_param(lon_dis, lat_dis, dt)
 
-        # Update model
-        poly_param = {"lat_dis": lat_dis, "lon_dis": lon_dis, "dt": dt,
-                      "lat_param": lat_param, "lon_param": lon_param}
-        self._model["poly_param"] = poly_param
-        self._poly_points = []
-        print("Poly Parameters Updated")
+            # Update model
+            poly_param = {"lat_dis": lat_dis, "lon_dis": lon_dis, "dt": dt,
+                        "lat_param": lat_param, "lon_param": lon_param}
+            self._model["poly_param"] = poly_param
+            
+            print("New lon_dis: %f, lat_dis: %f, dt: %f"% (lon_dis, lat_dis, dt))
+            print("Polynomial Parameters Updated")
+        else:
+            print("No poly parameters data")
 
-    def update_sin_param(self, debug=False):
+
+    def update_sin_param(self, debug=True):
         """
         Sinusoidal Method comes from:
         V. A. Butakov and P. Ioannou,
         "Personalized Driver/Vehicle Lane Change Models for ADAS,"
         in IEEE Transactions on Vehicular Technology, vol. 64, no. 10, pp. 4422-4431, Oct. 2015.
         """
-        if len(self._sin_points) < 30:
-            return  
-        
-        current_sin_param = self.get_parameter("sin_param")
-        current_lon_dis = current_sin_param["lon_dis"]
-        current_lat_dis = current_sin_param["lat_dis"]
-        current_dt = current_sin_param["dt"]
+        states = np.array(self._state_list)
+        points = states[:,0:5]
         
         # Get points while lane changing
-        x_v, y_v, t_v, start_index = self.get_lane_changing_points(self._sin_points)
-        if len(x_v) < 10:
-            return
-        
-        # New lane changing parameters
-        new_dt = t_v[-1] - t_v[0]
-        new_lon_dis = x_v[-1] - x_v[0]
-        new_lat_dis = y_v[-1] - y_v[0]
+        x_v, y_v, t_v, start_index = self.get_lane_changing_points(points)
 
-        # For GMM
-        # velocity of ego
-        V = self._velocity_list[start_index].x
-        # lateral distance
-        H = new_lat_dis
-        # get radar information when lane change happens
-        radars = self._radar_list[start_index]
-        DL = radars[1][1][0] if radars[1] else 100
-        DF = radars[2][1][0] if radars[2] else -100
-        print(V, H, DL, DF, new_dt)
-        # Save data for GMM
-        GMM_train_path = path.join(self._data_folder, "GMM_train_data.csv")
-        if path.exists(GMM_train_path):
-            with open(GMM_train_path, 'rb') as f:
-                GMM_train_data = np.loadtxt(f, delimiter=",")
-                GMM_train_data = np.atleast_2d(GMM_train_data)
-            GMM_train_data = np.append(GMM_train_data, np.array([[V, H, DL, DF, new_dt]]), axis=0)
+        if x_v.size > 20:
+            # New lane changing parameters
+            new_dt = t_v[-1] - t_v[0]
+            new_lon_dis = x_v[-1] - x_v[0]
+            new_lat_dis = y_v[-1] - y_v[0]
+
+            # For GMM
+            # velocity of ego
+            V = self._state_list[start_index][8]
+            # lateral distance
+            H = new_lat_dis
+            # get radar information when lane change happens
+            DL = self._state_list[start_index][10]
+            DF = self._state_list[start_index][11]
+
+            if debug:
+                t_after = np.linspace(0, new_dt, 100)
+                plt.figure(figsize=(3, 9))
+                plt.subplot(312)
+                plt.xlabel('time (t)')
+                plt.ylabel('Longitudinal (m)')
+                x_after = np.linspace(0, new_lon_dis, 100)
+                plt.plot(t_after, x_after, color='g')
+                plt.scatter(t_v, x_v, marker='x', color='k', s=5)
+                plt.subplot(313)
+                plt.xlabel('time (t)')
+                plt.ylabel('Lateral (m)')
+                y_after = -new_lat_dis/(2*math.pi) * np.sin(2*math.pi * t_after/new_dt) + \
+                            new_lat_dis * t_after/new_dt
+                plt.plot(t_after, y_after, color='g')
+                plt.scatter(t_v, y_v, marker='x', color='k', s=5)
+                plt.subplot(311)
+                plt.xlabel('Longitudinal (m)')
+                plt.ylabel('Lateral (m)')
+                plt.plot(x_after, y_after, color='g')
+                plt.scatter(x_v, y_v, marker='x', color='k', s=5)
+                plt.show()
+
+            # Save data for GMM
+            self.save_data(np.array([V, H, DL, DF, new_dt, new_lon_dis/new_dt]), "GMM_train_data.csv")
+            print("Sin Parameters Data Saved")
         else:
-            GMM_train_data = np.array([[V, H, DL, DF, new_dt]])
-        
-        with open(GMM_train_path, 'wb') as f:
-            np.savetxt(f, GMM_train_data, delimiter=",")
+            print("No availiable sin data")
 
-        # Update values
-        dt = self.change_param(current_dt, new_dt)
-        lon_dis = self.change_param(current_lon_dis, new_lon_dis)
-        lat_dis = self.change_param(current_lat_dis, new_lat_dis)
+    # Train sin parameters
+    def train_sin_param(self):
+        data = self.load_data("GMM_train_data.csv")
+        if data is not None and data.size != 0:
+            gmm = GMM()
+            gmm.train(data[:,0:5])
 
-        if debug:
-            t_after = np.linspace(0, dt, 100)
-            t_curr = np.linspace(0, current_dt, 100)
-            plt.figure(figsize=(3, 9))
-            plt.subplot(312)
-            plt.xlabel('time (t)')
-            plt.ylabel('Longitudinal (m)')
-            x_after = np.linspace(0, lon_dis, 100)
-            x_curr = np.linspace(0, current_lon_dis, 100)
-            plt.plot(t_after, x_after, color='g')
-            plt.plot(t_curr, x_curr, color='y')
-            plt.scatter(t_v, x_v, marker='x', color='k', s=5)
-            plt.subplot(313)
-            plt.xlabel('time (t)')
-            plt.ylabel('Lateral (m)')
-            y_after = -lat_dis/(2*math.pi) * np.sin(2*math.pi * t_after/dt) + lat_dis * t_after/dt
-            y_curr = -current_lat_dis/(2*math.pi)*np.sin(2*math.pi*t_curr/current_dt)+current_lat_dis*t_curr/current_dt
-            plt.plot(t_after, y_after, color='g')
-            plt.plot(t_curr, y_curr, color='y')
-            plt.scatter(t_v, y_v, marker='x', color='k', s=5)
-            plt.subplot(311)
-            plt.xlabel('Longitudinal (m)')
-            plt.ylabel('Lateral (m)')
-            plt.plot(x_after, y_after, color='g')
-            plt.plot(x_curr, y_curr, color='y')
-            plt.scatter(x_v, y_v, marker='x', color='k', s=5)
-            plt.show()
+            if gmm.GMM_model is not None:
+                # Update GMM model
+                gmm.save_model()
 
-        # Update model
-        sin_param = {"lat_dis": lat_dis, "lon_dis": lon_dis, "dt": dt}
-        self._model["sin_param"] = sin_param
-        self._sin_points = []
-        print("Sinusoidal Parameters Updated")
+                # Update longitudinal distance
+                long_vel = np.mean(data[:,5]/data[:,4]) * 3.0
+                self._model["sin_param"]["lon_vel"] = long_vel
+                
+                print("New Longitudinal Velocity: %f"% long_vel)
+                print("Sinusoidal Parameters Updated")
+            else:
+                print("Training GMM failed")
+        else:
+            print("No sin parameters data")
 
 
     def update_safe_distance(self, debug=False):
@@ -491,7 +493,9 @@ class Model:
     def train_new_model(self):
         self.train_target_speed()
         self.train_safe_distance()
-        # self.store_new_model()
+        self.train_sin_param()
+        self.train_poly_param()
+        self.store_new_model()
 
     # Store learned result
     def store_new_model(self):

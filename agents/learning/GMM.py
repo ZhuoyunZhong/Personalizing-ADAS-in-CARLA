@@ -13,7 +13,7 @@ import numpy as np
 
 
 # Gaussian Mix Model
-# [V, H, DL, DF] -- GMM --> [t_lat]
+# [V, H, DL, DF] -- GMM --> [t_lat, long]
 
 class GMM:
     def __init__(self, data_file="GMM_train_data.csv", 
@@ -39,18 +39,24 @@ class GMM:
             if path.exists(self._train_file_path):
                 with open(self._train_file_path, 'rb') as f:
                     data = np.loadtxt(f, delimiter=",")
+                    data = np.atleast_2d(data)[:,0:5]
                 self.train(data, self._Gaussian_set_num, self._iteration_t)
+                if self.GMM_model is not None:
+                    self.save_model()
+                else:
+                    print("Training failed")
             else:
                 print('GMM train data does not exist')
-                
-        # Load GMM model
-        with open(self._model_file_path, 'rb') as f:
-            self.GMM_model = pickle.load(f)
-            self._Gaussian_set_num = self.GMM_model['Gaussian_number']
-            self._p = self.GMM_model['p']
-            self._mean = self.GMM_model['mean']
-            self._covar = self.GMM_model['covariance']
-        print('GMM model loaded')
+                return
+        else:        
+            # Load GMM model
+            with open(self._model_file_path, 'rb') as f:
+                self.GMM_model = pickle.load(f)
+                self._Gaussian_set_num = self.GMM_model['Gaussian_number']
+                self._p = self.GMM_model['p']
+                self._mean = self.GMM_model['mean']
+                self._covar = self.GMM_model['covariance']
+            print('GMM model loaded')
 
     def _initial_GMM_params(self, data):
         # K-means cluster
@@ -77,6 +83,11 @@ class GMM:
             self._iteration_t = iteration_t
 
         data_size, dim = data.shape[0], data.shape[1]
+
+        # Check data number
+        if data_size < self._Gaussian_set_num:
+            print('GMM train data is not enough to perform a training')
+            return
 
         # Initialize GMM using k-mean
         self._initial_GMM_params(data)
@@ -121,11 +132,17 @@ class GMM:
         # Store model
         self.GMM_model = {'p': self._p, 'mean': self._mean, 'covariance':self._covar, 
                      'Gaussian_number': self._Gaussian_set_num}
-        with open(self._model_file_path, 'wb') as f:
-            pickle.dump(self.GMM_model, f)
-
         print('GMM model trained')
 
+    # save model
+    def save_model(self):
+        if self.GMM_model is not None:
+            with open(self._model_file_path, 'wb') as f:
+                pickle.dump(self.GMM_model, f)
+        else:
+            print("Model is not trained or loaded")
+
+    # Predict label given full-dimension variables
     def predict_label(self, points):
         # Check dimension
         assert(self._mean.shape[1] == points.shape[1])
@@ -139,8 +156,8 @@ class GMM:
         labels = np.argmax(labels, axis=1)
         return labels 
 
+    # Gaussian Mixed Regression
     def predict_value(self, s, known_indices=np.array([0, 1, 2, 3])):
-        # Gaussian Mixed Regression
         '''
         Predict missing value with regression
         t_lat = argmax p(s, t_lat | theta)
@@ -193,7 +210,7 @@ class GMM:
             p /= p.sum()
 
             # Predicted mean
-            Y[n] = np.dot(p, mean)
+            Y[n,:] = np.dot(p, mean)
 
         return Y
 
