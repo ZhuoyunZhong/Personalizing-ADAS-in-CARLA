@@ -56,8 +56,8 @@ class Model:
     def end_collect(self):
         self.update_target_speed()
         self.update_safe_distance()
-        self.update_sin_param(debug=True)
-        self.update_poly_param(debug=True)
+        self.update_sin_param()
+        self.update_poly_param()
         
         # Temporary
         self._state_list.append([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
