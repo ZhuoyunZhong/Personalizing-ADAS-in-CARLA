@@ -21,7 +21,7 @@ class VehiclePIDController:
         :param args_longitudinal: dictionary of arguments to set the longitudinal PID controller
         """
         if not args_lateral:
-            args_lateral = {'K_P': 0.4, 'K_I': 0.2, 'K_D': 0.4, 'dt': 0.05}
+            args_lateral = {'K_P': 0.4, 'K_I': 0.2, 'K_D': 0.4, 'dt': 0.05, 'control_type': 'PID'}
         if not args_longitudinal:
             args_longitudinal = {'K_P': 1.0, 'K_I': 0.2, 'K_D': 0.6, 'dt': 0.05}
 
@@ -42,7 +42,7 @@ class VehiclePIDController:
         throttle = self._lon_controller.run_step(target_speed)
         steering = self._lat_controller.run_step(waypoints, target_waypoint, current_waypoint)
 
-        throttle, steering = self._mpc.run_step(target_speed, waypoints)        
+        # throttle, steering = self._mpc.run_step(target_speed, waypoints)        
 
         control = carla.VehicleControl()
         control.steer = steering
@@ -120,7 +120,7 @@ class PIDLateralController:
     Heading lateral controller (Stanley lateral controller preferred)
     """
 
-    def __init__(self, vehicle, K_P=0.5, K_D=0.5, K_I=0.2, dt=0.05):
+    def __init__(self, vehicle, K_P=0.5, K_D=0.5, K_I=0.2, dt=0.05, control_type='PID'):
         """
         :param vehicle: actor to apply to local planner logic onto
         :param K_P: Proportional term
@@ -134,6 +134,7 @@ class PIDLateralController:
         self._K_I = K_I
         self._dt = dt
         self._e_buffer = deque(maxlen=10)
+        self._control_type =control_type 
 
     def run_step(self, waypoints, target_waypoint, current_waypoint):
         """
@@ -144,8 +145,11 @@ class PIDLateralController:
             -1 represent maximum steering to left
             +1 maximum steering to right
         """
-        return self._pid_control(target_waypoint, self._vehicle.get_transform())
-        # return self._stanley_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
+
+        if self._control_type=='PID':
+            return self._pid_control(target_waypoint, self._vehicle.get_transform())
+        else:    
+            return self._stanley_control(target_waypoint, current_waypoint, self._vehicle.get_transform())
 
     def _pid_control(self, waypoint, vehicle_transform):
         """
@@ -155,6 +159,9 @@ class PIDLateralController:
         :param vehicle_transform: current transform of the vehicle
         :return: steering control in the range [-1, 1]
         """
+        print(" ")
+        print("================= PID Control ======================")
+
         v_begin = vehicle_transform.location
         v_end = v_begin + carla.Location(x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
                                          y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
@@ -197,6 +204,8 @@ class PIDLateralController:
         """
 
         # heading error
+        print(" ")
+        print("================= Stanley ======================")
         yaw_path = np.arctan2(target_waypoint.transform.location.y-current_waypoint.transform.location.y, target_waypoint.transform.location.x - current_waypoint.transform.location.x)
         
         v_begin = vehicle_transform.location
@@ -504,11 +513,11 @@ class MPC:
 
         steer_output = steering
         
-        print("--------------------------------------")
+        print("================= MPC ======================")
         print("steer_output: ", steer_output[0])
         print("throttle_output: ", throttle_output[0])
         print("brake_output: ", brake_output[0])
-        print("--------------------------------------")
+        print("============================================")
         print("   ")
 
         return throttle_output[0], brake_output[0], steer_output[0]
