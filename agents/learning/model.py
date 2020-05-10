@@ -33,7 +33,8 @@ class Model:
         # if file doesn't exist, create one
         if not path.exists(self._model_path):
             # Default model
-            model = {"safe_distance": 10.0, "target_speed": 28.0,
+            model = {"safe_distance": {"THW": 2.0}, 
+                     "target_speed": 28.0,
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
@@ -85,9 +86,13 @@ class Model:
                 train_data = np.loadtxt(f, delimiter=",")
                 train_data = np.atleast_2d(train_data)
         else:
-            print(file_name, " does not exist.")
+            print("%s does not exist."% file_name)
 
         return train_data
+
+    # Return a certain parameter value
+    def get_parameter(self, keyword):
+        return self._model[keyword]
 
 
     @staticmethod
@@ -305,36 +310,120 @@ class Model:
         print("Sinusoidal Parameters Updated")
 
 
-    def update_acc(self, debug=False):
-        # Only consider the lowest 10% of the distance value list
-        percentage = 0.2
-        length = int(percentage * len(self._distance_list))
-        if length <= 5:
-            return
+    def update_safe_distance(self, debug=False):
+        """
+        Personalized ACC Method comes from:
+        J. Wang, L. Zhang, D. Zhang and K. Li, 
+        "An Adaptive Longitudinal Driving Assistance System Based on Driver Characteristics," 
+        in IEEE Transactions on Intelligent Transportation Systems, vol. 14, no. 1, pp. 1-12, 
+        March 2013, doi: 10.1109/TITS.2012.2205143.
+        """
+        # Get velocity and acceleration of the ego vehicle
+        states = np.array(self._state_list)
+        time_stamp = states[:,0]/1000.0
+        speed = states[:,8]
+        acceleration = (speed[1:]-speed[0:-1]) / (time_stamp[1:]-time_stamp[0:-1])
+        time_stamp = time_stamp[1:]
+        speed = speed[1:]
+        # Get distance and velocity of the lead vehicle
+        front_distance = states[1:,9]
+        front_speed = states[1:,12]
+        rel_speed = speed - front_speed
+        
+        # get speed while there is a vehicle ahead
+        index = (front_distance != 100) & (speed != 0) & (front_distance != 0)
+        # remove approaching state
+        current_index = 0
+        current_time = time_stamp[0]
+        accelrating_flag = acceleration[0] > 0
+        for i in range(time_stamp.size):
+            if acceleration[i] > 0:
+                if not accelrating_flag:
+                    accelrating_flag = True
+                    current_time = time_stamp[i]
+                    current_index = i
+            else:
+                if accelrating_flag:
+                    accelrating_flag = False
+                    if time_stamp[i] - current_time > 3.0:
+                        index[current_index:i] = False
 
-        current_dist = self.get_parameter("safe_distance")
+        time_stamp = time_stamp[index]
+        speed = speed[index]
+        rel_speed = rel_speed[index]
+        acceleration = acceleration[index]
+        front_distance = front_distance[index]
 
-        # get new value
-        self._distance_list.sort()
-        new_dist = sum(self._distance_list[0:length]) / length
-        # update
-        safe_distance = self.change_param(current_dist, new_dist)
+        # Compute THW and TTCi
+        if speed.size > 50:
+            THW = front_distance / speed
+            TTCi = rel_speed / front_distance
 
-        self._model["safe_distance"] = safe_distance
-        self._distance_list = []
-        print("Safe Distance Updated")
+            # Select stable vehicle following
+            steady_index = abs(TTCi) < 0.05
+            THW = THW[steady_index]
+            TTCi = TTCi[steady_index]
 
-    def train_acc(self):
-        pass
+            # get new value
+            THW_mean, THW_std = norm.fit(THW)
+            THW_covar = THW_std**2
+
+            if debug:
+                fig = plt.figure()
+                ax1 = fig.add_subplot(221)
+                ax1.hist(THW, bins=THW.size/3, ec='red', alpha=0.5, density=True)
+                THW = np.sort(THW)
+                x = np.linspace(THW[0], THW[-1], THW.size).reshape(-1,1)
+                y = norm.pdf(x, THW_mean, THW_std).ravel()
+                ax1.plot(x, y, c='red')
+                ax2 = fig.add_subplot(222)
+                ax2.hist(TTCi, bins=TTCi.size/3, ec='red', alpha=0.5)
+                ax3 = fig.add_subplot(212)
+                ax3.scatter(time_stamp, speed, c='r')
+                ax3.scatter(time_stamp, rel_speed, c='g')
+                ax3.scatter(time_stamp, acceleration, c='b')
+                ax3.scatter(time_stamp, front_distance, c='k')
+                
+                plt.show()
+            
+            self.save_data(np.array([THW_mean, THW_covar]), "safe_distance_train_data.csv")
+            print("Safe Distance Data Saved")
+        else:
+            print("No availiable safe distance data")
+
+    def train_safe_distance(self):
+        data = self.load_data("safe_distance_train_data.csv")
+        if data is not None and data.size != 0:
+            # Update THW
+            means = data[:, 0]
+            covars = data[:, 1]
+            target_THW = means[0]
+            THW_covar = covars[0]
+
+            for i in range(means.size-1):
+                u1 = target_THW
+                s1 = THW_covar
+                u2 = means[i+1]
+                s2 = covars[i+1]
+
+                target_THW = (s1*u2+s2*u1) / (s1+s2)
+                THW_covar = s1*s2 / (s1+s2)
+
+            self._model["target_speed"] = {"THW": target_THW}
+            print("Safe Distance Trained")
+            print("New THW: %f"% target_THW)
+        else:
+            print("No safe distance data")
 
 
-    def update_target_speed(self, debug=True):
+    def update_target_speed(self, debug=False):
         # Get acceleration and speed
         states = np.array(self._state_list)
         time_stamp = states[:,0]
         speed = states[:,8]
 
         acceleration = (speed[1:]-speed[0:-1]) / ((time_stamp[1:]-time_stamp[0:-1])/1000.0)
+        time_stamp = time_stamp[1:]
         speed = speed[1:]
 
         # get speed while it is stable and no vehicle ahead
@@ -344,7 +433,7 @@ class Model:
         stable_speed = np.sort(stable_speed)[::-1]
         stable_speed = stable_speed[0:stable_speed.size/4]
 
-        if stable_speed.size != 0:
+        if stable_speed.size > 50:
             gmm = GaussianMixture(n_components=3, covariance_type='diag')
             result = gmm.fit(stable_speed[:, np.newaxis])
             weights, means, covars = result.weights_, result.means_, result.covariances_
@@ -354,7 +443,7 @@ class Model:
             mean, covar = means[max_index][0], covars[max_index][0]
 
             if debug:
-                plt.hist(stable_speed, bins = stable_speed.size, ec='red', alpha=0.5)
+                plt.hist(stable_speed, bins = stable_speed.size, ec='red', alpha=0.5, density=True)
                 x = np.linspace(stable_speed[0], stable_speed[-1], stable_speed.size).reshape(-1,1)
                 y1 = weights[0] * norm.pdf(x, means[0], np.sqrt(covars[0])).ravel()
                 y2 = weights[1] * norm.pdf(x, means[1], np.sqrt(covars[1])).ravel()
@@ -393,7 +482,7 @@ class Model:
 
             self._model["target_speed"] = target_speed
             print("Target Speed Trained")
-            print("New Target Speed: ", target_speed)
+            print("New Target Speed: %f"% target_speed)
         else:
             print("No target speed data")
 
@@ -401,8 +490,8 @@ class Model:
     # Train the model according to saved driver's data
     def train_new_model(self):
         self.train_target_speed()
-        self.train_acc()
-        self.store_new_model()
+        self.train_safe_distance()
+        # self.store_new_model()
 
     # Store learned result
     def store_new_model(self):

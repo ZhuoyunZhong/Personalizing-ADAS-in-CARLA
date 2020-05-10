@@ -28,7 +28,7 @@ class LearningAgent(Agent):
         self._world_obj = world
         # Learning Model
         self._model = Model()
-        self._safe_distance = None
+        self._THW = None
         self._target_speed = None
         self._sin_param = None
         self._poly_param = None
@@ -44,6 +44,7 @@ class LearningAgent(Agent):
         self._grp = None  # global route planar
         # Behavior planning
         self._hazard_detected = False
+        self._blocked_time = None
         self._perform_lane_change = False
         self._front_r = []
         self._left_front_r = []
@@ -51,7 +52,7 @@ class LearningAgent(Agent):
 
     # Update personalized parameters from model
     def update_parameters(self):
-        self._safe_distance = self._model.get_parameter("safe_distance")
+        self._THW = self._model.get_parameter("safe_distance")["THW"]
         self._target_speed = self._model.get_parameter("target_speed")
         self._sin_param = self._model.get_parameter("sin_param")
         self._poly_param = self._model.get_parameter("poly_param")
@@ -78,7 +79,7 @@ class LearningAgent(Agent):
 
         # Collect vehicle velocity and speed
         v = self._vehicle.get_velocity()
-        personalization_param.extend([v.x, v.y, v.z, math.sqrt(v.x**2 + v.y**2 + v.z**2)])                    
+        personalization_param.extend([v.x, v.y, v.z, self._get_velocity()])                    
 
         # Collect radar information
         front_dis = 100
@@ -141,13 +142,19 @@ class LearningAgent(Agent):
 
         return route
 
+    # Get vehicle speed
+    def _get_speed(self):
+        v = self._vehicle.get_velocity()
+        ego_speed = math.sqrt(v.x**2 + v.y**2 + v.z**2)
+        return ego_speed
+
     # Run step
     def run_step(self, debug=False):
         """
         Execute one step of navigation.
         :return: carla.VehicleControl
         """
-
+        ## Update Environment ##
         # Check all the radars
         if self._world_obj.front_radar.detected:
             if abs(self._world_obj.front_radar.rel_pos[1]) < 1:
@@ -155,16 +162,16 @@ class LearningAgent(Agent):
                                                         self._world_obj.front_radar.rel_vel]
             self._world_obj.front_radar.detected = False                                        
         if self._world_obj.left_front_radar.detected:
-            if self._world_obj.front_radar.rel_pos[1] < -1:
+            if self._world_obj.left_front_radar.rel_pos[1] < -1:
                 self._left_front_r =[pygame.time.get_ticks(), self._world_obj.left_front_radar.rel_pos, 
                                                             self._world_obj.left_front_radar.rel_vel]
             self._world_obj.left_front_radar.detected = False
         if self._world_obj.left_back_radar.detected:
-            if self._world_obj.front_radar.rel_pos[1] < -1:
+            if self._world_obj.left_back_radar.rel_pos[1] < -1:
                 self._left_back_r = [pygame.time.get_ticks(), self._world_obj.left_back_radar.rel_pos, 
                                                             self._world_obj.left_back_radar.rel_vel]
             self._world_obj.left_back_radar.detected = False
-        # Remove radar data if not detected again in 0.25 second
+        # Remove radar data if not detected again in 0.5 second
         if self._front_r and (pygame.time.get_ticks() - self._front_r[0] > 5000):
             self._front_r = []
         if self._left_front_r and (pygame.time.get_ticks() - self._left_front_r[0] > 5000):
@@ -174,8 +181,20 @@ class LearningAgent(Agent):
         
         # Detect vehicles in front
         self._hazard_detected = False
-        if self._front_r and (self._front_r[1][0] < self._safe_distance):
+        if self._front_r and (self._front_r[1][0] < 20.0):
             self._hazard_detected = True
+            # Temp: Emergency
+            if self._front_r[1][0] < 5.0:
+                return self._local_planner.soft_stop()
+        # update hazard existing time
+        if self._hazard_detected:
+            if self._blocked_time is None:
+                self._blocked_time = pygame.time.get_ticks()
+                hazard_time = 0
+            else:
+                hazard_time = pygame.time.get_ticks() - self._blocked_time
+        else:
+            self._blocked_time = None
 
         '''                          
         # retrieve relevant elements for safe navigation, i.e.: traffic lights
@@ -189,10 +208,6 @@ class LearningAgent(Agent):
             self._state = AgentState.BLOCKED_RED_LIGHT
             self._hazard_detected = True
         '''
-        
-        #print(self._front_r)
-        #print(self._left_front_r)
-        #print(self._left_back_r)
         #print(self._state)
 
         # Finite State Machine
@@ -200,21 +215,24 @@ class LearningAgent(Agent):
         if self._state == AgentState.NAVIGATING:
             if self._hazard_detected:
                 self._state = AgentState.BLOCKED_BY_VEHICLE
-                # The vehicle is driving at a certain speed
-                # There is enough space
-                if 200 > self._vehicle.get_velocity().x > 5 and \
-                self._vehicle.get_location().y > 7:
-                    self._state = AgentState.PREPARE_LANE_CHANGING
 
         # 2, Blocked by Vehicle
         elif self._state == AgentState.BLOCKED_BY_VEHICLE:
             if not self._hazard_detected:
                 self._state = AgentState.NAVIGATING
+            # The vehicle is driving at a certain speed
+            # There is enough space
+            else:
+                if hazard_time > 5000 and \
+                    190 > self._vehicle.get_location().x > 10 and \
+                    10 > self._vehicle.get_location().y > 7:
+                    self._state = AgentState.PREPARE_LANE_CHANGING
 
         # 4, Prepare Lane Change
         elif self._state == AgentState.PREPARE_LANE_CHANGING:
-            if  not (self._front_r and self._front_r[1][0] < self._safe_distance) and \
-                not (self._left_front_r and self._left_front_r[1][0] < self._safe_distance) and \
+            safe_distance = self._THW * self._get_speed()
+            if  not (self._front_r and self._front_r[1][0] < safe_distance) and \
+                not (self._left_front_r and self._left_front_r[1][0] < safe_distance) and \
                 not (self._left_back_r and self._left_back_r[1][0] > -10):
                     print(self._front_r)
                     print(self._left_front_r)
@@ -231,13 +249,26 @@ class LearningAgent(Agent):
         # Standard local planner behavior
         if self._state == AgentState.NAVIGATING or self._state == AgentState.LANE_CHANGING:
             control = self._local_planner.run_step(debug=debug)
+
         elif self._state == AgentState.PREPARE_LANE_CHANGING:
-            if self._left_front_r and self._left_front_r[1][0] < self._safe_distance or \
-               self._front_r and self._front_r[1][0] < self._safe_distance:
+            safe_distance = self._THW * self._get_speed()
+            if self._left_front_r and self._left_front_r[1][0] < safe_distance or \
+               self._front_r and self._front_r[1][0] < safe_distance:
                 control = self._local_planner.empty_control(debug=debug)
             else:
                 control = self._local_planner.run_step(debug=debug)
-        elif self._state == AgentState.BLOCKED_BY_VEHICLE or self._state == AgentState.BLOCKED_RED_LIGHT:
+
+        elif self._state == AgentState.BLOCKED_BY_VEHICLE:
+            # ACC
+            front_dis = self._front_r[1][0]
+            front_vel = self._front_r[2][0]
+            ego_speed = self._get_speed()
+            desired_speed = front_vel - (ego_speed-front_vel)/front_dis
+            if ego_speed > 1:
+                desired_speed += 2*(front_dis/ego_speed - self._THW)
+            control = self._local_planner.run_step(debug=debug, target_speed=desired_speed*3.6)
+
+        elif self._state == AgentState.BLOCKED_RED_LIGHT:
             control = self._local_planner.empty_control(debug=debug)
 
         # When performing a lane change

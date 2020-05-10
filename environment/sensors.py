@@ -37,10 +37,11 @@ class FakeRadarSensor(object):
         self.location = carla.Location(x=x, y=y, z=z)
         self.rotation = carla.Rotation(yaw=yaw)
         self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        self.fov = fov
         # Three sets of obstacle sensors
         self.sensor1 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw)
-        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-fov)
-        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+fov)
+        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-self.fov)
+        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+self.fov)
         self._sensor_list = [self.sensor1, self.sensor2, self.sensor3]
         # Useful class variables
         self.detected = False
@@ -80,9 +81,7 @@ class FakeRadarSensor(object):
             return
         
         self.detected = True
-
-        self.rotation = carla.Rotation(yaw=self.rotation.yaw + 15*num)
-        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        sensor_rotation = carla.Rotation(yaw=self.rotation.yaw + self.fov*num)
 
         # relative position
         veh_tran = self._parent.get_transform()
@@ -93,15 +92,15 @@ class FakeRadarSensor(object):
         # velocity
         actor_vel = self.obstacle.get_velocity()
         vel_vec = carla.Vector3D(x=actor_vel.x, y=actor_vel.y, z=actor_vel.z)
-        rel_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
+        rel_vel = transform_to_world(carla.Transform(carla.Location(), sensor_rotation),
                                      vel_vec, inverse=True)
-        self.rel_vel = [rel_vel.x, rel_vel.y, rel_vel.z]
+        self.rel_vel = [vel_vec.x, vel_vec.y, vel_vec.z]
 
         if self._debug:
             draw_vec = carla.Vector3D(x=obs_pos.x, y=obs_pos.y, z=obs_pos.z+1)
             veh_vel = self._parent.get_velocity()
             veh_vel_vec = carla.Vector3D(x=veh_vel.x, y=veh_vel.y, z=veh_vel.z)
-            rel_veh_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
+            rel_veh_vel = transform_to_world(carla.Transform(carla.Location(), sensor_rotation),
                                              veh_vel_vec, inverse=True)
             norm_velocity = (self.rel_vel[0] - rel_veh_vel.x) / self._velocity_range # range [-1, 1]
             r = int(self.clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
@@ -122,12 +121,13 @@ class FakeRadarSensor(object):
 # Obstacle sensor (ultrasonic)
 class ObstacleSensor(object):
     def __init__(self, parent_actor, hud, debug=True, listen=True, 
-                 x=2.5, y=0.0, z=1.0, yaw=0.0, sensor_tick = '0.5'):
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, hit_radius='1.0', sensor_tick='0.5'):
         self._parent = parent_actor
         world = self._parent.get_world()
         obs_sensor_bp = world.get_blueprint_library().find('sensor.other.obstacle')
         obs_sensor_bp.set_attribute('distance', '25')
         obs_sensor_bp.set_attribute('sensor_tick', sensor_tick)
+        obs_sensor_bp.set_attribute('hit_radius', hit_radius)
 
         self.location = carla.Location(x=x, y=y, z=z)
         self.rotation = carla.Rotation(yaw=yaw)

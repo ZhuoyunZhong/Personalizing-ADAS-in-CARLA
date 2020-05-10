@@ -109,7 +109,7 @@ class World(object):
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
 
-        self.front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0)
+        self.front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0, fov=5)
         self.left_front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-30.0)
         self.left_back_radar = FakeRadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-150.0)
         '''
@@ -150,11 +150,11 @@ class World(object):
         if self.agent_name == "Learning":
             self.agent = LearningAgent(self)
             # destination Setting
-            self.agent.set_destination((25, 195, 0))
+            self.agent.set_destination((235, 45, 0))
         elif self.agent_name == "Basic":
             self.agent = BasicAgent(self.player)
             # destination Setting
-            self.agent.set_destination((25, 195, 0))
+            self.agent.set_destination((235, 45, 0))
         else:
             self.agent = RoamingAgent(self.player)
 
@@ -253,10 +253,10 @@ def game_loop(args):
                     world.agent.end_collect()
                     learning_flag = False
 
+            control = world.agent.run_step(debug=True)
             # Agent autopilot
             if world.autopilot_mode:
-                # control signal to vehicle
-                control = world.agent.run_step(debug=True)
+                # control signal to vehicle        
                 control.manual_gear_shift = False
                 world.player.apply_control(control)
 

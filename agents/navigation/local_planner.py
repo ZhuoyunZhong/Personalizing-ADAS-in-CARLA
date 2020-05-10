@@ -180,7 +180,7 @@ class LocalPlanner(object):
     def get_global_destination(self):
         return self._waypoints_queue[-1][0]
 
-    def run_step(self, debug=True):
+    def run_step(self, debug=True, target_speed=None):
         """
         Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
         follow the waypoints trajectory.
@@ -222,10 +222,13 @@ class LocalPlanner(object):
         self.target_waypoint, self._target_road_option = self.waypoint_buffer[0]
         
         # move using PID controllers
-        control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint, self._current_waypoint)
+        if not target_speed:
+            target_speed = self._target_speed
+        control = self._vehicle_controller.run_step(target_speed, self.target_waypoint, self._current_waypoint)
 
         self.update_buffer()
-
+        
+        # Draw waypoints
         if debug:
             draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 0.8)
 
