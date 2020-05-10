@@ -1,6 +1,6 @@
-# Assistive-Driving-in-CARLA
+# Personalizing-ADAS-in-CARLA
 
-This project aims to personalize Advanced Driving-assistance Systems ([ADAS](https://en.wikipedia.org/wiki/Advanced_driver-assistance_systems)) for autonomous vehicles with the self-driving cars simulator [CARLA](http://carla.org/). The two main focus are on personalizing lane-changing and personalizing Adaptive Cruise Control ([ACC](https://en.wikipedia.org/wiki/Adaptive_cruise_control)) that includes vehicle following and lane following. 
+This project aims to personalize Advanced Driving-assistance Systems ([ADAS](https://en.wikipedia.org/wiki/Advanced_driver-assistance_systems)) for autonomous vehicles with the self-driving cars simulator [CARLA](http://carla.org/). The two main focus are on personalizing ***lane changing*** and personalizing Adaptive Cruise Control ([ACC](https://en.wikipedia.org/wiki/Adaptive_cruise_control)) that includes ***vehicle following*** a*nd **lane following***. 
 
 ## Demonstration
 
@@ -66,18 +66,24 @@ Carla
 
    There are options for generating different scenes. 
 
-   To perform personalized ACC when there is no vehicle in front, generate only the ego vehicle by:
+   To perform personalized ACC when there is no vehicle in front, also known as ***lane following***, generate scene 0 where only the ego vehicle exists by:
 
    `python ego_vehicle.py`
 
-   To perform personalized ACC for vehicle following, generate the first scene where one vehicle is in front of the ego vehicle by:
+   To perform personalized ACC for ***vehicle following***, generate the first scene where one vehicle is in front of the ego vehicle by:
 
    `python ego_vehicle.py -s 1`
 
-   To perform personalized lane-changing, generate the second scene where multiple vehicles are surrounding the ego vehicle:
+   To perform personalized ***lane changing***, generate the second scene where multiple vehicles are surrounding the ego vehicle:
 
    `python ego_vehicle.py -s 2` 
 
-#### Performing Phase
+#### Learning Phase
 
-The vehicle is initialized with autopilot mode on. To switch to manual control, press `p`. To start or end the learning process, press `l` and drive the vehicle. After learning, it requires to regenerate the scene by pressing `Backspace`.
+The vehicle is initialized with autopilot mode on. To switch between manual control and autopilot mode, press `p`. 
+
+To start or end the learning process, press `l` in manual control mode. Noted that starting and ending learning process would only collect driver's behavior data. One has to press `t` to let the model learn from the data and be stored locally.
+
+After learning, one could regenerate the scene by pressing `Backspace` and turn autopilot mode on to see the performance of the vehicle.
+
+It is advisable to personalize ***lane following*** in front in scene 0, to clone ***vehicle following*** behavior in scene 1, and to teach the model ***lane changing*** in scene 2.
