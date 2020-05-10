@@ -24,6 +24,7 @@ try:
 
     from pygame.locals import K_p
     from pygame.locals import K_l
+    from pygame.locals import K_t
 
     from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT
     from pygame.locals import K_w, K_a, K_s, K_d
@@ -42,8 +43,6 @@ except ImportError:
     F1           : toggle HUD
     H            : toggle help
     ESC          : quit
-    P            : toggle autopilot
-    L            : toggle learning mode
     C            : change weather (Shift+C reverse)
     TAB          : change sensor position
     `            : change sensor
@@ -56,12 +55,10 @@ except ImportError:
     M            : toggle manual transmission
     ,/.          : gear up/down
 
+    P            : toggle autopilot
+    L            : toggle learning mode
+    T            : train the model with existing data
     Backspace    : reborn
-    R            : toggle recording images to disk
-    CTRL + R     : toggle recording of simulation (replacing any previous)
-    CTRL + P     : start replaying last recorded simulation
-    CTRL + +     : increments the start time of the replay by 1 second (+SHIFT = 10 seconds)
-    CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 """
 
 
@@ -109,6 +106,7 @@ class KeyboardControl(object):
                 elif event.key == K_h:
                     world.hud.help.toggle()
 
+                '''
                 # Record setting
                 elif event.key == K_r and not (pygame.key.get_mods() & KMOD_CTRL):
                     world.main_rgb_camera.toggle_recording()
@@ -147,6 +145,7 @@ class KeyboardControl(object):
                     else:
                         world.recording_start += 1
                     world.hud.notification("Recording start time is %d" % world.recording_start)
+                '''
 
                 # Control setting
                 if isinstance(self._control, carla.VehicleControl):
@@ -175,6 +174,11 @@ class KeyboardControl(object):
                         world.enable_learning(self._learning_enabled)
                         world.hud.notification('Learning %s' % ('On' if self._learning_enabled else 'Off'))
 
+                    # train model
+                    elif event.key == K_t:
+                        world.agent.train_model()
+                        world.hud.notification('Training Model...')
+
         # send control signal
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
@@ -188,11 +192,11 @@ class KeyboardControl(object):
 
     # Vehicle Control
     def _parse_vehicle_keys(self, keys, milliseconds):
-        throttle_increment = 7e-4 * milliseconds
+        throttle_increment = 5e-4 * milliseconds
         if keys[K_UP] or keys[K_w]:
-            self._control.throttle = min(abs(self._control.throttle + throttle_increment), 0.9)
+            self._control.throttle = min(abs(self._control.throttle + throttle_increment), 0.7)
         else:
-            self._control.throttle = 0
+            self._control.throttle = max(self._control.throttle - throttle_increment, 0.2)
         steer_increment = 5e-4 * milliseconds
         if keys[K_LEFT] or keys[K_a]:
             if self._steer_cache > 0:

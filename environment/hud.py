@@ -72,10 +72,11 @@ class HUD(object):
             '',
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)),
             u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
-            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
-            'Height:  % 18.0f m' % t.location.z,
+            'Location:% 20s' % ('(% 3.1f, % 3.1f, % 3.1f)' % (t.location.x, t.location.y, t.location.z)),
             '']
+            # 'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
+            # 'Height:  % 18.0f m' % t.location.z,
+            
         if isinstance(c, carla.VehicleControl):
             self._info_text += [
                 ('Throttle:', c.throttle, 0.0, 1.0),
@@ -84,18 +85,35 @@ class HUD(object):
                 ('Reverse:', c.reverse),
                 ('Hand brake:', c.hand_brake),
                 ('Manual:', c.manual_gear_shift),
-                'Gear:        %s' % {-1: 'R', 0: 'N'}.get(c.gear, c.gear)]
+                 'Gear:         %s' % {-1: 'R', 0: 'N'}.get(c.gear, c.gear)]
         elif isinstance(c, carla.WalkerControl):
             self._info_text += [
                 ('Speed:', c.speed, 0.0, 5.556),
                 ('Jump:', c.jump)]
         self._info_text += [
             '',
-            'Obstacle:',
-            '']
-        if world.obstacle_sensor.obstacle is not None:
-            self._info_text.append('%2.1f m  %s' % (world.obstacle_sensor.distance_to_obstacle,
-                                                    world.obstacle_sensor.obstacle.type_id))
+            'Front radar:']
+        if world.front_radar.obstacle is not None:
+            self._info_text.append('%2.1f m  %s' % (world.front_radar.distance,
+                                                    world.front_radar.obstacle.type_id))
+        else:
+            self._info_text.append(' ')
+        self._info_text += [
+            '',
+            'Left-front radar:']
+        if world.left_front_radar.obstacle is not None:
+            self._info_text.append('%2.1f m  %s' % (world.left_front_radar.distance,
+                                                    world.left_front_radar.obstacle.type_id))
+        else:
+            self._info_text.append(' ')
+        self._info_text += [
+            '',
+            'Left-back radar:']
+        if world.left_back_radar.obstacle is not None:
+            self._info_text.append('%2.1f m  %s' % (world.left_back_radar.distance,
+                                                    world.left_back_radar.obstacle.type_id))
+        else:
+            self._info_text.append(' ')
         self._info_text += [
             '',
             'Collision:',
@@ -127,18 +145,20 @@ class HUD(object):
 
     def render(self, display):
         if self._show_info:
-            info_surface = pygame.Surface((220, self.dim[1]))
+            info_surface_width = 230
+            info_surface = pygame.Surface((info_surface_width, self.dim[1]))
             info_surface.set_alpha(100)
-            display.blit(info_surface, (0, 0))
             v_offset = 4
-            bar_h_offset = 100
-            bar_width = 106
+            h_offset = self.dim[0] - info_surface_width+10
+            bar_h_offset = h_offset + 100
+            bar_width = 104
+            display.blit(info_surface, (h_offset-10, 0))
             for item in self._info_text:
                 if v_offset + 18 > self.dim[1]:
                     break
                 if isinstance(item, list):
                     if len(item) > 1:
-                        points = [(x + 8, v_offset + 8 + (1.0 - y) * 30) for x, y in enumerate(item)]
+                        points = [(h_offset+ x + 8, v_offset + 8 + (1.0 - y) * 30) for x, y in enumerate(item)]
                         pygame.draw.lines(display, (255, 136, 0), False, points, 2)
                     item = None
                     v_offset += 18
@@ -158,7 +178,7 @@ class HUD(object):
                     item = item[0]
                 if item:  # At this point has to be a str.
                     surface = self._font_mono.render(item, True, (255, 255, 255))
-                    display.blit(surface, (8, v_offset))
+                    display.blit(surface, (h_offset, v_offset))
                 v_offset += 18
         self._notifications.render(display)
         self.help.render(display)
@@ -193,8 +213,6 @@ class HelpText(object):
         lines = ["F1           : toggle HUD",
                  "H            : toggle help",
                  "ESC          : quit",
-                 "P            : toggle autopilot",
-                 "L            : toggle learning mode",
                  "C            : change weather (Shift+C reverse)",
                  "TAB          : change sensor position",
                  "`            : change sensor",
@@ -207,12 +225,10 @@ class HelpText(object):
                  "M            : toggle manual transmission",
                  ",/.          : gear up/down",
                  "",
-                 "Backspace    : reborn",
-                 "R            : toggle recording images to disk",
-                 "CTRL + R     : toggle recording of simulation",
-                 "CTRL + P     : start replaying last recorded simulation",
-                 "CTRL + +     : increments the start time of the replay by 1 s",
-                 "CTRL + -     : decrements the start time of the replay by 1 s"]
+                 "P            : toggle autopilot",
+                 "L            : toggle learning mode",
+                 "T            : train the model with existing data",
+                 "Backspace    : reborn"]
         self.font = font
         self.dim = (800, len(lines) * 22 + 12)
         self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])

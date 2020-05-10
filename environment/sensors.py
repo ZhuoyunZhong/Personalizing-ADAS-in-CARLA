@@ -32,22 +32,23 @@ from agents.tools.misc import *
 # Fake Radar
 class FakeRadarSensor(object):
     def __init__(self, parent_actor, hud, debug=True, 
-                 x=2.5, y=0.0, z=1.0, yaw=0.0):
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, fov=15):
         self._parent = parent_actor
         self.location = carla.Location(x=x, y=y, z=z)
         self.rotation = carla.Rotation(yaw=yaw)
         self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        self.fov = fov
         # Three sets of obstacle sensors
         self.sensor1 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw)
-        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-15)
-        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+15)
+        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-self.fov)
+        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+self.fov)
         self._sensor_list = [self.sensor1, self.sensor2, self.sensor3]
         # Useful class variables
         self.detected = False
         self.rel_pos = None
         self.rel_vel = None
-        self._obstacle = None
-        self._distance = None
+        self.obstacle = None
+        self.distance = None
         # Debug
         self._velocity_range = 8
         self._debug = debug
@@ -66,42 +67,42 @@ class FakeRadarSensor(object):
         if not self:
             return
 
+        # If other part is already detected
         if self.detected:
             return
-
-        # Event values
-        self._obstacle = event.other_actor
-        self._distance = event.distance
-
+        
+        # Event check
+        self.obstacle = event.other_actor
+        self.distance = event.distance
         # Only track other dynamic objects
-        if "static" in self._obstacle.type_id or \
-            self._obstacle.id == self._parent.id:
+        if "vehicle" not in self.obstacle.type_id or self.obstacle.id == self._parent.id:
+            self.obstacle = None
+            self.distance = None
             return
+        
         self.detected = True
-
-        self.rotation = carla.Rotation(yaw=self.rotation.yaw + 15*num)
-        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        sensor_rotation = carla.Rotation(yaw=self.rotation.yaw + self.fov*num)
 
         # relative position
         veh_tran = self._parent.get_transform()
-        obs_pos = self._obstacle.get_location()
+        obs_pos = self.obstacle.get_location()
         rel_pos = transform_to_world(veh_tran, obs_pos, inverse=True)
         self.rel_pos = [rel_pos.x, rel_pos.y, rel_pos.z]
 
         # velocity
-        actor_vel = self._obstacle.get_velocity()
+        actor_vel = self.obstacle.get_velocity()
         vel_vec = carla.Vector3D(x=actor_vel.x, y=actor_vel.y, z=actor_vel.z)
-        rel_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
+        rel_vel = transform_to_world(carla.Transform(carla.Location(), sensor_rotation),
                                      vel_vec, inverse=True)
-        self.rel_vel = rel_vel.x
+        self.rel_vel = [vel_vec.x, vel_vec.y, vel_vec.z]
 
         if self._debug:
             draw_vec = carla.Vector3D(x=obs_pos.x, y=obs_pos.y, z=obs_pos.z+1)
             veh_vel = self._parent.get_velocity()
             veh_vel_vec = carla.Vector3D(x=veh_vel.x, y=veh_vel.y, z=veh_vel.z)
-            rel_veh_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
+            rel_veh_vel = transform_to_world(carla.Transform(carla.Location(), sensor_rotation),
                                              veh_vel_vec, inverse=True)
-            norm_velocity = (self.rel_vel - rel_veh_vel.x) / self._velocity_range # range [-1, 1]
+            norm_velocity = (self.rel_vel[0] - rel_veh_vel.x) / self._velocity_range # range [-1, 1]
             r = int(self.clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
             g = int(self.clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
             b = int(abs(self.clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
@@ -113,8 +114,44 @@ class FakeRadarSensor(object):
         return max(min_v, min(value, max_v))
     
     def destroy(self):
-        for sensorn in self._sensor_list:
-            sensorn.sensor.destroy()
+        for sensor in self._sensor_list:
+            sensor.sensor.destroy()
+
+
+# Obstacle sensor (ultrasonic)
+class ObstacleSensor(object):
+    def __init__(self, parent_actor, hud, debug=True, listen=True, 
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, hit_radius='1.0', sensor_tick='0.5'):
+        self._parent = parent_actor
+        world = self._parent.get_world()
+        obs_sensor_bp = world.get_blueprint_library().find('sensor.other.obstacle')
+        obs_sensor_bp.set_attribute('distance', '25')
+        obs_sensor_bp.set_attribute('sensor_tick', sensor_tick)
+        obs_sensor_bp.set_attribute('hit_radius', hit_radius)
+
+        self.location = carla.Location(x=x, y=y, z=z)
+        self.rotation = carla.Rotation(yaw=yaw)
+        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
+        self.sensor = world.try_spawn_actor(obs_sensor_bp, self.transform,
+                                            attach_to=self._parent)
+
+        self.obstacle = None
+        self.distance_to_obstacle = None
+        self.close_to_obstacle = False
+
+        # We need to pass the lambda a weak reference to self to avoid circular
+        # reference.
+        if listen:
+            weak_self = weakref.ref(self)
+            self.sensor.listen(lambda event: ObstacleSensor._on_detect(weak_self, event))
+
+    @staticmethod
+    def _on_detect(weak_self, event):
+        self = weak_self()
+        if not self:
+            return
+        self.obstacle = event.other_actor
+        self.distance_to_obstacle = event.distance
 
 
 # Radar
@@ -221,40 +258,6 @@ class RadarSensor(object):
         self.rel_vel = np.mean(rel_vel)
         self.detected = True
 
-# Obstacle sensor (ultrasonic)
-class ObstacleSensor(object):
-    def __init__(self, parent_actor, hud, debug=True, listen=True, 
-                 x=2.5, y=0.0, z=1.0, yaw=0.0, sensor_tick = '0.5'):
-        self._parent = parent_actor
-        world = self._parent.get_world()
-        obs_sensor_bp = world.get_blueprint_library().find('sensor.other.obstacle')
-        obs_sensor_bp.set_attribute('distance', '25')
-        obs_sensor_bp.set_attribute('sensor_tick', sensor_tick)
-
-        self.location = carla.Location(x=x, y=y, z=z)
-        self.rotation = carla.Rotation(yaw=yaw)
-        self.transform = carla.Transform(location=self.location, rotation=self.rotation)
-        self.sensor = world.try_spawn_actor(obs_sensor_bp, self.transform,
-                                            attach_to=self._parent)
-
-        self.obstacle = None
-        self.distance_to_obstacle = None
-        self.close_to_obstacle = False
-
-        # We need to pass the lambda a weak reference to self to avoid circular
-        # reference.
-        if listen:
-            weak_self = weakref.ref(self)
-            self.sensor.listen(lambda event: ObstacleSensor._on_detect(weak_self, event))
-
-    @staticmethod
-    def _on_detect(weak_self, event):
-        self = weak_self()
-        if not self:
-            return
-        self.obstacle = event.other_actor
-        self.distance_to_obstacle = event.distance
-
 
 # CollisionSensor
 class CollisionSensor(object):
@@ -316,6 +319,140 @@ class GnssSensor(object):
             return
         self.lat = event.latitude
         self.lon = event.longitude
+
+
+# Camera Set including Driver's View & Rearview Mirror
+class CameraSet(object):
+    def __init__(self, parent_actor, hud):
+        self.surface = None
+        self._parent = parent_actor
+        self.hud = hud
+        self.recording = False
+
+        # Define three rgb cameras
+        self._camera_transforms = [
+            carla.Transform(carla.Location(x=0.1, y=-0.3, z=1.3)),
+            carla.Transform(carla.Location(x=0.6, y=-1.0, z=1), carla.Rotation(yaw=-150)),
+            carla.Transform(carla.Location(x=0.6, y=1.0, z=1), carla.Rotation(yaw=150))]
+        self._transform_index = 0
+        self._transform_list = [
+            carla.Transform(carla.Location(x=0.1, y=-0.3, z=1.3)),
+            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
+        self._sensors_param = [
+            ['sensor.camera.rgb', cc.Raw, 'Camera RGB Main'],
+            ['sensor.camera.rgb', cc.Raw, 'Camera RGB Left_rearview'],
+            ['sensor.camera.rgb', cc.Raw, 'Camera RGB Right_rearview']]
+        self.left_rearview_image = None
+        self.right_rearview_image = None
+
+        # Append blueprint in the end of each sensor
+        world = self._parent.get_world()
+        bp_library = world.get_blueprint_library()
+        for item in self._sensors_param:
+            bp = bp_library.find(item[0])
+            if 'Main' in item[2]:
+                bp.set_attribute('image_size_x', str(hud.dim[0]))
+                bp.set_attribute('image_size_y', str(hud.dim[1]))
+            if "rearview" in item[2]:
+                bp.set_attribute('image_size_x', str(hud.dim[0]*1/4))
+                bp.set_attribute('image_size_y', str(hud.dim[1]*1/4))
+                bp.set_attribute('fov', str(70))
+            item.append(bp)
+
+        # Spawn cameras
+        self._sensor_list = []
+        for index in range(len(self._sensors_param)):
+            self._sensor_list.append(
+                self._parent.get_world().try_spawn_actor(
+                    self._sensors_param[index][-1],
+                    self._camera_transforms[index],
+                    attach_to=self._parent))
+        self.sensor1 = self._sensor_list[0]
+        self.sensor2 = self._sensor_list[1]
+        self.sensor3 = self._sensor_list[2]
+        
+        # We need to pass the lambda a weak reference to self to avoid circular
+        # reference.
+        weak_self = weakref.ref(self)
+        self.sensor1.listen(lambda event: CameraSet._parse_image(weak_self, event))
+        self.sensor2.listen(lambda event: CameraSet._store_left_rearview(weak_self, event))
+        self.sensor3.listen(lambda event: CameraSet._store_right_rearview(weak_self, event))
+
+    @staticmethod
+    def _store_left_rearview(weak_self, image):
+        self = weak_self()
+        if not self:
+            return
+
+        image.convert(self._sensors_param[1][1])
+        array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
+        array = np.reshape(array, (image.height, image.width, 4))
+        array = array[:, :, :3]
+        array = array[:, :, ::-1]
+
+        self.left_rearview_image = array
+
+    @staticmethod
+    def _store_right_rearview(weak_self, image):
+        self = weak_self()
+        if not self:
+            return
+
+        image.convert(self._sensors_param[2][1])
+        array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
+        array = np.reshape(array, (image.height, image.width, 4))
+        array = array[:, :, :3]
+        array = array[:, :, ::-1]
+
+        self.right_rearview_image = array
+
+    @staticmethod
+    def _parse_image(weak_self, image):
+        self = weak_self()
+        if not self:
+            return
+
+        image.convert(self._sensors_param[0][1])
+        array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
+        array = np.reshape(array, (image.height, image.width, 4))
+        array = array[:, :, :3]
+        array = array[:, :, ::-1]
+
+        '''
+        # Disabled lane_detection for not able to handle vehicle-in-front cases
+        # and high computing resources required
+        self.ld.lane_detection(array)
+        array = self.ld.result_image
+        '''
+
+        # Attach left rearview mirror
+        display_image = array.copy()
+        if self.left_rearview_image is not None:
+            display_image[:self.hud.dim[1]*1/4, :self.hud.dim[0]*1/4, :] = self.left_rearview_image
+        '''
+        if self.right_rearview_image is not None:
+            display_image[self.hud.dim[0]-self.hud.dim[0]*1/4:self.hud.dim[0],\
+                self.hud.dim[1]-self.hud.dim[1]*1/4:self.hud.dim[1], :]=\
+                self.right_rearview_image
+        '''
+
+        self.surface = pygame.surfarray.make_surface(display_image.swapaxes(0, 1))
+
+        if self.recording:
+            image.save_to_disk('_out/%08d' % image.frame)
+
+    def render(self, display):
+        if self.surface is not None:
+            display.blit(self.surface, (0, 0))
+
+    def toggle_camera(self):
+        self._transform_index = (self._transform_index + 1) % len(self._transform_list)
+        self.sensor1.set_transform(self._transform_list[self._transform_index])
+
+    def destroy(self):
+        for sensor in self._sensor_list:
+            if sensor is not None:
+                sensor.destroy()
 
 
 # CameraManager

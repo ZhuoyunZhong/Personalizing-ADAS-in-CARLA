@@ -23,7 +23,7 @@ class PolyLaneChange:
         self._lat_param = param['lat_param']
         self._dt = param["dt"]
 
-        self._npts = 15
+        self._npts = 20
 
     # Return lane change waypoints
     def get_waypoints(self, ref):
@@ -55,20 +55,22 @@ class PolyLaneChange:
 class SinLaneChange:
     def __init__(self, world, param, GMM_v=np.array([])):
         self._world_obj = world
-
-        self._lon_dis = param['lon_dis']
+        self._lon_vel = param['lon_vel']
         self._lat_dis = param['lat_dis']
         self._dt = param["dt"]
-        if GMM_v.shape[0] > 0:
-            GMM_sin = GMM()
-            self._dt = GMM_sin.predict_value(GMM_v)[0][0]
-            if np.isnan(self._dt):
-                self._dt = 4.0
-                print("GMM model failed, send dt = 4")
-            else:
-                print("Predict dt: %s from GMM" % self._dt)
 
-        self._npts = 15
+        # Load GMM
+        if GMM_v.size > 0:
+            GMM_sin = GMM()
+            if GMM_sin.GMM_model is not None:
+                self._dt = GMM_sin.predict_value(GMM_v)[0][0]
+                if np.isnan(self._dt):
+                    self._dt = param["dt"]
+                    print("GMM model failed, send dt = 4, lon_vel = 7")
+                else:
+                    print("Predict dt: %s from GMM" % (self._dt))
+
+        self._npts = 20
 
     # Return lane change waypoints
     def get_waypoints(self, ref):
@@ -81,7 +83,7 @@ class SinLaneChange:
 
         # Get points
         t = np.linspace(0, self._dt, self._npts)
-        x = np.linspace(0, self._lon_dis, self._npts)
+        x = np.linspace(0, self._lon_vel*self._dt, self._npts)
         # a_lat = (2*pi*self._lat_dis) / (self._dt*self._dt) * np.sin(2*pi * t_lat/self._dt)
         # v_lat = -self._lat_dis/self._dt * np.sin(2*pi * t_lat/self._dt) + self._lat_dis/self._dt
         y = -self._lat_dis/(2*pi) * np.sin(2*pi * t/self._dt) + self._lat_dis * t/self._dt
@@ -93,75 +95,6 @@ class SinLaneChange:
         # Store waypoints
         for i in range(self._npts):
             waypoint = LocalWaypoint(coord[0][i], coord[1][i], 0)
-            lane_change_plan.append((waypoint, RoadOption.CHANGELANELEFT))
-
-        return lane_change_plan
-
-
-# TODO
-# This class generate waypoints of spline trajectory
-class SplineLaneChange:
-    def __init__(self, world, param):
-        self._world_obj = world
-        self._map = self._world_obj.world.get_map()
-
-        self._tck = param['tck']
-        self._lon_dis = param["lon_dis"]
-        self._lat_dis = param["lat_dis"]
-
-        self._npts = 15
-
-    # Return lane change waypoints
-    def get_waypoints(self, target_speed, ref, extras=None):
-        lane_change_plan = []
-        tck = self._tck
-
-        x_ref = ref[0]
-        y_ref = ref[1]
-        yaw = ref[2]
-        sy = sin(radians(yaw))
-        cy = cos(radians(yaw))
-
-        dt = sqrt(self._lat_dis ** 2 + self._lon_dis ** 2) / target_speed  # For future
-        increment_x = self._lon_dis / self._npts
-
-        # If extras exists, refit tck with extra points
-        if extras:
-            xs = []
-            ys = []
-            # Add new points
-            for (x_coord, y_coord) in extras:
-                x = (cy * x_coord + sy * y_coord) + (-cy * x_ref - sy * y_ref)
-                y = (-sy * x_coord + cy * y_coord) + (sy * x_ref - cy * y_ref)
-                xs.append(x)
-                ys.append(y)
-            # Add points from previous spline
-            x = -increment_x
-            for _ in range(self._npts):
-                # Get longitudinal position
-                x += increment_x
-                # Get lateral position
-                y = float(splev(x, self._tck))
-                xs.append(x)
-                ys.append(y)
-            xs.sort()
-            ys.sort(reverse=True)
-            tck = splrep(xs, ys, s=0.1)
-
-        # Generate points for lane changing
-        x = -increment_x
-        for _ in range(self._npts):
-            # Get longitudinal position
-            x += increment_x
-            # Get lateral position
-            y = float(splev(x, tck))
-
-            # Transform to world coordinate
-            x_coord = cy * x - sy * y + x_ref
-            y_coord = sy * x + cy * y + y_ref
-
-            # Store waypoints
-            waypoint = LocalWaypoint(x_coord, y_coord, 0)
             lane_change_plan.append((waypoint, RoadOption.CHANGELANELEFT))
 
         return lane_change_plan

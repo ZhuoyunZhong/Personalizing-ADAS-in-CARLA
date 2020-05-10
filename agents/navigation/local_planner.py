@@ -83,9 +83,7 @@ class LocalPlanner(object):
         """
         # default params
         self._dt = 1.0 / 20.0      # 1/F
-        self._target_speed = 30.0  # Km/h
-        self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
-        self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
+        self._target_speed = 30 #30.0  # Km/h
         args_lateral_dict = {
             'K_P': 1.95,
             'K_D': 0.01,
@@ -103,9 +101,6 @@ class LocalPlanner(object):
                 self._dt = opt_dict['dt']
             if 'target_speed' in opt_dict:
                 self._target_speed = opt_dict['target_speed']
-            if 'sampling_radius' in opt_dict:
-                self._sampling_radius = self._target_speed * \
-                                        opt_dict['sampling_radius'] / 3.6
             if 'lateral_control_dict' in opt_dict:
                 args_lateral_dict = opt_dict['lateral_control_dict']
             if 'longitudinal_control_dict' in opt_dict:
@@ -123,8 +118,8 @@ class LocalPlanner(object):
         self._global_plan = False
 
         # compute initial waypoints
+        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
-
         self._target_road_option = RoadOption.LANEFOLLOW
         
         # fill waypoint trajectory queue
@@ -188,7 +183,7 @@ class LocalPlanner(object):
     def get_global_destination(self):
         return self._waypoints_queue[-1][0]
 
-    def run_step(self, debug=True):
+    def run_step(self, debug=True, target_speed=None):
         """
         Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
         follow the waypoints trajectory.
@@ -237,9 +232,10 @@ class LocalPlanner(object):
         control = self._vehicle_controller.run_step(self._target_speed, waypoints, self.target_waypoint, self._current_waypoint)
 
         self.update_buffer()
-
+        
+        # Draw waypoints
         if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 0.8)
 
         return control
 
