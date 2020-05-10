@@ -7,7 +7,6 @@ import numpy as np
 from collections import deque
 from agents.tools.misc import get_speed
 
-from casadi import *
 import time
 
 class VehiclePIDController:

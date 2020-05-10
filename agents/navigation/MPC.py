@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+
+import carla
+
+import math
+import numpy as np
+from agents.tools.misc import get_speed
+from casadi import *
+
+
 class MPC:
     
     def __init__(self, vehicle):
@@ -198,6 +208,8 @@ class MPC:
         #opts["ipopt.max_iter"] = 4
         opts["ipopt.linear_solver"] = 'ma27'
         opts["ipopt.print_level"] = 0
+        opts["ipopt.sb"] = "yes"
+        opts["print_time"] = 0
 
         # Allocate an NLP solver
         solver = nlpsol("solver", "ipopt", nlp, opts)
