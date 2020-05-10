@@ -32,15 +32,15 @@ from agents.tools.misc import *
 # Fake Radar
 class FakeRadarSensor(object):
     def __init__(self, parent_actor, hud, debug=True, 
-                 x=2.5, y=0.0, z=1.0, yaw=0.0, mul=True):
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, fov=15):
         self._parent = parent_actor
         self.location = carla.Location(x=x, y=y, z=z)
         self.rotation = carla.Rotation(yaw=yaw)
         self.transform = carla.Transform(location=self.location, rotation=self.rotation)
         # Three sets of obstacle sensors
         self.sensor1 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw)
-        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-15)
-        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+15)
+        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-fov)
+        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+fov)
         self._sensor_list = [self.sensor1, self.sensor2, self.sensor3]
         # Useful class variables
         self.detected = False
@@ -57,9 +57,8 @@ class FakeRadarSensor(object):
         # reference.
         weak_self = weakref.ref(self)
         self.sensor1.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 0))
-        if mul:
-            self.sensor2.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, -1))
-            self.sensor3.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 1))
+        self.sensor2.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, -1))
+        self.sensor3.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 1))
 
     @staticmethod
     def _on_detect(weak_self, event, num):
@@ -104,7 +103,7 @@ class FakeRadarSensor(object):
             veh_vel_vec = carla.Vector3D(x=veh_vel.x, y=veh_vel.y, z=veh_vel.z)
             rel_veh_vel = transform_to_world(carla.Transform(carla.Location(), self.rotation),
                                              veh_vel_vec, inverse=True)
-            norm_velocity = (self.rel_vel - rel_veh_vel.x) / self._velocity_range # range [-1, 1]
+            norm_velocity = (self.rel_vel[0] - rel_veh_vel.x) / self._velocity_range # range [-1, 1]
             r = int(self.clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
             g = int(self.clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
             b = int(abs(self.clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
