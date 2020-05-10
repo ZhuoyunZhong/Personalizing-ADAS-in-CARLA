@@ -258,7 +258,6 @@ def game_loop(args):
             if world.autopilot_mode:
                 # control signal to vehicle        
                 control.manual_gear_shift = False
-                print("control", control)
                 world.player.apply_control(control)
 
     finally:
