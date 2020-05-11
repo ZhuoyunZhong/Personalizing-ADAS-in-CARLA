@@ -6,7 +6,8 @@ import random
 from matplotlib import pyplot as plt
 
 import carla
-from agents.navigation.controller import VehiclePIDController, MPC
+from agents.navigation.pid_controller import VehiclePIDController
+from agents.navigation.MPC import MPC
 from agents.tools.misc import distance_vehicle, draw_waypoints
 
 
@@ -86,58 +87,45 @@ class LocalPlanner(object):
         self._target_speed = 30.0  # Km/h
         self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
-                
         args_lateral_dict = {
             'K_P': 1.95,
             'K_D': 0.01,
             'K_I': 1.4,
             'dt': self._dt,
             'control_type': 'PID'}
-
         args_longitudinal_dict = {
             'K_P': 1.0,
             'K_D': 0,
             'K_I': 1,
             'dt': self._dt}
-
+        
         # parameters overload
         if opt_dict:
             if 'dt' in opt_dict:
                 self._dt = opt_dict['dt']
-            
             if 'target_speed' in opt_dict:
                 self._target_speed = opt_dict['target_speed']
-            
-            if 'sampling_radius' in opt_dict:
-                self._sampling_radius = self._target_speed * \
-                                        opt_dict['sampling_radius'] / 3.6
-            
             if 'lateral_control_dict' in opt_dict:
                 args_lateral_dict = opt_dict['lateral_control_dict']
-            
             if 'longitudinal_control_dict' in opt_dict:
                 args_longitudinal_dict = opt_dict['longitudinal_control_dict']
-
-        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         
+        # Controller
         CONTROLLER_TYPE = args_lateral_dict['control_type']
-
         if CONTROLLER_TYPE == 'MPC':
             self._vehicle_controller = MPC(self._vehicle)
-        
         else:            
             self._vehicle_controller = VehiclePIDController(self._vehicle,
                                                         args_lateral=args_lateral_dict,
                                                         args_longitudinal=args_longitudinal_dict)
 
-
+        # Plannar
         self._global_plan = False
-
         # compute initial waypoints
+        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
-
         self._target_road_option = RoadOption.LANEFOLLOW
-        
         # fill waypoint trajectory queue
         self._compute_next_waypoints(k=200)
 
@@ -199,7 +187,7 @@ class LocalPlanner(object):
     def get_global_destination(self):
         return self._waypoints_queue[-1][0]
 
-    def run_step(self, debug=True):
+    def run_step(self, debug=True, target_speed=None):
         """
         Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
         follow the waypoints trajectory.
@@ -245,12 +233,15 @@ class LocalPlanner(object):
         waypoints = [[points.transform.location.x, points.transform.location.y, points.transform.rotation.yaw] for points in _waypoints]
         # print("waypoints: ", waypoints)    
         
-        control = self._vehicle_controller.run_step(self._target_speed, waypoints, self.target_waypoint, self._current_waypoint)
+        if target_speed is None:
+            target_speed = self._target_speed
+        control = self._vehicle_controller.run_step(target_speed, waypoints, self.target_waypoint, self._current_waypoint)
 
         self.update_buffer()
-
+        
+        # Draw waypoints
         if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 0.8)
 
         return control
 

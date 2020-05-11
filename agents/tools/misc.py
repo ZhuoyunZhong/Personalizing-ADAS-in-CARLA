@@ -108,18 +108,19 @@ def transform_to_world(local_frame, vector, inverse=False):
 def draw_waypoints(world, waypoints, z=0.5):
     """
     Draw a list of waypoints at a certain height given in z.
-
     :param world: carla.world object
     :param waypoints: list or iterable container with the waypoints to draw
     :param z: height in meters
     :return:
     """
-    for w in waypoints:
-        t = w.transform
+    for p in waypoints:
+        t = p.transform
         begin = t.location + carla.Location(z=z)
+        size = 0.1
         angle = math.radians(t.rotation.yaw)
-        end = begin + carla.Location(x=math.cos(angle), y=math.sin(angle))
-        world.debug.draw_arrow(begin, end, arrow_size=0.3, life_time=1.0)
+        end = begin + carla.Location(x=5*size*math.cos(angle), y=5*size*math.sin(angle))
+        # world.debug.draw_point(begin, size=size, color=carla.Color(255,0,0), life_time=0.1)
+        world.debug.draw_arrow(begin, end, arrow_size=size, life_time=0.5)
 
 
 def get_speed(vehicle):
