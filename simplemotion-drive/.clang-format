@@ -1,0 +1,10 @@
+BasedOnStyle: Google
+IndentWidth: 4
+FixNamespaceComments: true
+NamespaceIndentation: All
+ColumnLimit: 80
+AlignAfterOpenBracket: AlwaysBreak
+BinPackArguments: false
+BinPackParameters: false
+ObjCBlockIndentWidth: 4
+ContinuationIndentWidth: 4
