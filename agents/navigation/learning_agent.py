@@ -195,6 +195,9 @@ class LearningAgent(Agent):
         else:
             self._blocked_time = None
 
+        # Get a safe_distance
+        safe_distance = self._THW * self._get_speed()
+
         '''                          
         # retrieve relevant elements for safe navigation, i.e.: traffic lights
         actor_list = self._world.get_actors()
@@ -207,7 +210,7 @@ class LearningAgent(Agent):
             self._state = AgentState.BLOCKED_RED_LIGHT
             self._hazard_detected = True
         '''
-        print(self._state)
+        #print(self._state)
 
         # Finite State Machine
         # 1, Navigating
@@ -229,7 +232,6 @@ class LearningAgent(Agent):
 
         # 4, Prepare Lane Change
         elif self._state == AgentState.PREPARE_LANE_CHANGING:
-            safe_distance = self._THW * self._get_speed()
             if  not (self._front_r and self._front_r[1][0] < safe_distance) and \
                 not (self._left_front_r and self._left_front_r[1][0] < safe_distance) and \
                 not (self._left_back_r and self._left_back_r[1][0] > -10):
@@ -246,8 +248,10 @@ class LearningAgent(Agent):
                 self._state = AgentState.NAVIGATING
 
         # 6, Emergency Brake
-        emergency_distance = 5.0
-        if self._front_r and self._front_r[1][0] < emergency_distance:
+        emergency_distance = safe_distance *3/5
+        emergency_front_speed = 1.0
+        if self._front_r and (self._front_r[1][0] < emergency_distance or 
+                                self._front_r[2][0] < emergency_front_speed):
             self._state = AgentState.EMERGENCY_BRAKE
 
 
@@ -256,7 +260,6 @@ class LearningAgent(Agent):
             control = self._local_planner.run_step(debug=debug)
 
         elif self._state == AgentState.PREPARE_LANE_CHANGING:
-            safe_distance = self._THW * self._get_speed()
             if self._left_front_r and self._left_front_r[1][0] < safe_distance or \
                self._front_r and self._front_r[1][0] < safe_distance:
                 control = self._local_planner.empty_control(debug=debug)
@@ -274,8 +277,9 @@ class LearningAgent(Agent):
             control = self._local_planner.run_step(debug=debug, target_speed=desired_speed*3.6)
 
         elif self._state == AgentState.EMERGENCY_BRAKE:
-            control = self._local_planner.soft_stop()
-            if self._front_r[1][0] >= emergency_distance:
+            control = self._local_planner.brake()
+            if self._front_r[1][0] >= emergency_distance and \
+                self._front_r[2][0] > emergency_front_speed:
                 self._state = AgentState.NAVIGATING
 
         elif self._state == AgentState.BLOCKED_RED_LIGHT:

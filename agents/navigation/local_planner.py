@@ -251,7 +251,18 @@ class LocalPlanner(object):
         """
         control = self.run_step(debug=debug)
         control.throttle = 0.0
-        control.brake = 0.5
+        control.brake = 0.1
+
+        return control
+
+    def brake(self, debug=True):
+        """
+        Send an light stop command to the vehicle
+        :return: control
+        """
+        control = self.run_step(debug=debug)
+        control.throttle = 0.0
+        control.brake = 1.0
 
         return control
 
