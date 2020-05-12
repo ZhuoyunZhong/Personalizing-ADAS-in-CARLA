@@ -212,7 +212,6 @@ class LocalPlanner(object):
 
         # Buffering the waypoints
         if len(self.waypoint_buffer)<self._buffer_size:
-            print("Adding points to buffer")
             for i in range(self._buffer_size-len(self.waypoint_buffer)):
                 if self._waypoints_queue:
                     self.waypoint_buffer.append(self._waypoints_queue.popleft())
