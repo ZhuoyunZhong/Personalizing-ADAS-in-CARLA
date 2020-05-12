@@ -39,7 +39,11 @@ class LearningAgent(Agent):
         # Global plannar
         self._proximity_threshold = 10.0  # meter
         self._state = AgentState.NAVIGATING
-        self._hop_resolution = 2.0
+
+
+        self._hop_resolution = 0.1
+
+
         self._path_seperation_hop = 2
         self._path_seperation_threshold = 0.5
         self._grp = None  # global route planar

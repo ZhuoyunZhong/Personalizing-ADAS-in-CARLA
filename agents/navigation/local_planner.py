@@ -68,7 +68,7 @@ class LocalPlanner(object):
         
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
-        self._buffer_size = 14
+        self._buffer_size = 100 #initlally 14
         self.waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
@@ -109,7 +109,8 @@ class LocalPlanner(object):
                 args_longitudinal_dict = opt_dict['longitudinal_control_dict']
 
         # other parameters
-        self._sampling_radius = self._target_speed *(1.0/1.0) / 3.6
+        self._sampling_radius = self._target_speed *(1.0/2.0) / 3.6
+        # print("Sampling Radius is : ",self._sampling_radius)
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         self._vehicle_controller = VehiclePIDController(self._vehicle,
                                                         args_lateral=args_lateral_dict,
@@ -210,12 +211,22 @@ class LocalPlanner(object):
             return control
 
         # Buffering the waypoints
-        if not self.waypoint_buffer:
-            for i in range(self._buffer_size):
+        if len(self.waypoint_buffer)<self._buffer_size:
+            print("Adding points to buffer")
+            for i in range(self._buffer_size-len(self.waypoint_buffer)):
                 if self._waypoints_queue:
                     self.waypoint_buffer.append(self._waypoints_queue.popleft())
                 else:
                     break
+
+
+        # if not self.waypoint_buffer:
+        #     print("Adding points to buffer")
+        #     for i in range(self._buffer_size):
+        #         if self._waypoints_queue:
+        #             self.waypoint_buffer.append(self._waypoints_queue.popleft())
+        #         else:
+        #             break
 
                 # Control Vehicle
 
@@ -231,6 +242,7 @@ class LocalPlanner(object):
             draw_points.append(draw_point)
         #print("Buffer Size is :",len(self.waypoint_buffer))
         #print("--A--- Size is :",len(draw_points))
+        print("Sampling Radius is : ",self._sampling_radius)
 
         
         # move using PID controllers

@@ -117,7 +117,7 @@ def draw_waypoints(world, waypoints, z=0.5):
     for p in waypoints:
         t = p.transform
         begin = t.location + carla.Location(z=z)
-        size = 0.1
+        size = 0.05
         angle = math.radians(t.rotation.yaw)
         end = begin + carla.Location(x=5*size*math.cos(angle), y=5*size*math.sin(angle))
         # world.debug.draw_point(begin, size=size, color=carla.Color(255,0,0), life_time=0.1)
