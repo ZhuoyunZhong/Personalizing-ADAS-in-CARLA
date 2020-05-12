@@ -211,12 +211,21 @@ class LocalPlanner(object):
             return control
 
         # Buffering the waypoints
-        if not self.waypoint_buffer:
-            for i in range(self._buffer_size):
+        if len(self.waypoint_buffer)<self._buffer_size:
+            print("Adding points to buffer")
+            for i in range(self._buffer_size-len(self.waypoint_buffer)):
                 if self._waypoints_queue:
                     self.waypoint_buffer.append(self._waypoints_queue.popleft())
                 else:
                     break
+
+
+        # if not self.waypoint_buffer:
+        #     for i in range(self._buffer_size):
+        #         if self._waypoints_queue:
+        #             self.waypoint_buffer.append(self._waypoints_queue.popleft())
+        #         else:
+        #             break
 
                 # Control Vehicle
 
