@@ -32,17 +32,19 @@ from agents.tools.misc import *
 # Fake Radar
 class FakeRadarSensor(object):
     def __init__(self, parent_actor, hud, debug=True, 
-                 x=2.5, y=0.0, z=1.0, yaw=0.0, fov=15):
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, fov=8, component=5):
         self._parent = parent_actor
         self.location = carla.Location(x=x, y=y, z=z)
         self.rotation = carla.Rotation(yaw=yaw)
         self.transform = carla.Transform(location=self.location, rotation=self.rotation)
         self.fov = fov
-        # Three sets of obstacle sensors
-        self.sensor1 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw)
-        self.sensor2 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw-self.fov)
-        self.sensor3 = ObstacleSensor(parent_actor, hud, listen=False, x=x, y=y, z=z, yaw=yaw+self.fov)
-        self._sensor_list = [self.sensor1, self.sensor2, self.sensor3]
+        # Sets of obstacle sensors
+        self._sensor_list = []
+        for i in range(component):
+            yaw_diff = -(component-1)/2.0 * self.fov
+            sensor = ObstacleSensor(parent_actor, hud, listen=False, 
+                                    x=x, y=y, z=z, yaw=yaw+yaw_diff + i*self.fov)
+            self._sensor_list.append(sensor)
         # Useful class variables
         self.detected = False
         self.rel_pos = None
@@ -57,9 +59,9 @@ class FakeRadarSensor(object):
         # We need to pass the lambda a weak reference to self to avoid circular
         # reference.
         weak_self = weakref.ref(self)
-        self.sensor1.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 0))
-        self.sensor2.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, -1))
-        self.sensor3.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, 1))
+        for i, sensor in enumerate(self._sensor_list):
+            i_diff = -(component-1)/2.0
+            sensor.sensor.listen(lambda event: FakeRadarSensor._on_detect(weak_self, event, i_diff+i))
 
     @staticmethod
     def _on_detect(weak_self, event, num):
@@ -68,7 +70,7 @@ class FakeRadarSensor(object):
             return
 
         # If other part is already detected
-        if self.detected:
+        if self.detected or not event.other_actor:
             return
         
         # Event check
@@ -81,8 +83,7 @@ class FakeRadarSensor(object):
             return
         
         self.detected = True
-        sensor_rotation = carla.Rotation(yaw=self.rotation.yaw + self.fov*num)
-
+        
         # relative position
         veh_tran = self._parent.get_transform()
         obs_pos = self.obstacle.get_location()
@@ -90,11 +91,12 @@ class FakeRadarSensor(object):
         self.rel_pos = [rel_pos.x, rel_pos.y, rel_pos.z]
 
         # velocity
+        sensor_rotation = carla.Rotation(yaw=veh_tran.rotation.yaw + self.rotation.yaw + self.fov*num)
         actor_vel = self.obstacle.get_velocity()
         vel_vec = carla.Vector3D(x=actor_vel.x, y=actor_vel.y, z=actor_vel.z)
         rel_vel = transform_to_world(carla.Transform(carla.Location(), sensor_rotation),
                                      vel_vec, inverse=True)
-        self.rel_vel = [vel_vec.x, vel_vec.y, vel_vec.z]
+        self.rel_vel = [rel_vel.x, rel_vel.y, rel_vel.z]
 
         if self._debug:
             draw_vec = carla.Vector3D(x=obs_pos.x, y=obs_pos.y, z=obs_pos.z+1)
@@ -376,7 +378,7 @@ class CameraSet(object):
         weak_self = weakref.ref(self)
         self.sensor1.listen(lambda event: CameraSet._parse_image(weak_self, event))
         self.sensor2.listen(lambda event: CameraSet._store_left_rearview(weak_self, event))
-        self.sensor3.listen(lambda event: CameraSet._store_right_rearview(weak_self, event))
+        #self.sensor3.listen(lambda event: CameraSet._store_right_rearview(weak_self, event))
 
     @staticmethod
     def _store_left_rearview(weak_self, image):
@@ -448,6 +450,9 @@ class CameraSet(object):
     def toggle_camera(self):
         self._transform_index = (self._transform_index + 1) % len(self._transform_list)
         self.sensor1.set_transform(self._transform_list[self._transform_index])
+
+    def next_sensor(self):
+        pass
 
     def destroy(self):
         for sensor in self._sensor_list:
