@@ -3,6 +3,10 @@
 
 import carla
 
+# import os.path
+# import sys
+# sys.path.append(os.path.join(os.path.agents.learning(GMM.py)))
+
 import pickle
 from os import path
 from os.path import dirname, abspath
@@ -14,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from agents.tools.misc import get_poly_y, transform_to_frame
-from GMM import GMM
+from agents.learning.GMM import GMM
 
 
 # A Model class to store personalized parameters

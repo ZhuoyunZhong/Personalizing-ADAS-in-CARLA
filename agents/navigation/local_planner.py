@@ -211,15 +211,14 @@ class LocalPlanner(object):
             return control
 
         # Buffering the waypoints
-        if not self.waypoint_buffer:
-            for i in range(self._buffer_size):
+        if len(self.waypoint_buffer)<self._buffer_size:
+            for i in range(self._buffer_size-len(self.waypoint_buffer)):
                 if self._waypoints_queue:
                     self.waypoint_buffer.append(self._waypoints_queue.popleft())
                 else:
                     break
 
-                # Control Vehicle
-
+        # Control Vehicle
         # current vehicle waypoint
         vehicle_transform = self._vehicle.get_transform()
         self._current_waypoint = self._map.get_waypoint(vehicle_transform.location)

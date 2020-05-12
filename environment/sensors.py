@@ -378,7 +378,7 @@ class CameraSet(object):
         weak_self = weakref.ref(self)
         self.sensor1.listen(lambda event: CameraSet._parse_image(weak_self, event))
         self.sensor2.listen(lambda event: CameraSet._store_left_rearview(weak_self, event))
-        #self.sensor3.listen(lambda event: CameraSet._store_right_rearview(weak_self, event))
+        # self.sensor3.listen(lambda event: CameraSet._store_right_rearview(weak_self, event))
 
     @staticmethod
     def _store_left_rearview(weak_self, image):
@@ -430,7 +430,7 @@ class CameraSet(object):
         # Attach left rearview mirror
         display_image = array.copy()
         if self.left_rearview_image is not None:
-            display_image[:self.hud.dim[1]*1/4, :self.hud.dim[0]*1/4, :] = self.left_rearview_image
+            display_image[:int(self.hud.dim[1]*1/4), :int(self.hud.dim[0]*1/4), :] = self.left_rearview_image
         '''
         if self.right_rearview_image is not None:
             display_image[self.hud.dim[0]-self.hud.dim[0]*1/4:self.hud.dim[0],\
