@@ -42,7 +42,7 @@ Carla
 
 #### Other prerequisites
 
-`numpy`, `scikit-learn` and `pygame` should be correctly installed
+`numpy`,  `scikit-learn`,  `casadi`,  `opencv` and `pygame` should be correctly installed.
 
 ## Run Instruction
 
