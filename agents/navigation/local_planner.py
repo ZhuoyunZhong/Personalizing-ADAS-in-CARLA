@@ -251,7 +251,7 @@ class LocalPlanner(object):
         """
         control = self.run_step(debug=debug)
         control.throttle = 0.0
-        control.brake = 0.1
+        control.brake = 0.5
 
         return control
 

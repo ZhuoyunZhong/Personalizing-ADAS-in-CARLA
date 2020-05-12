@@ -109,9 +109,9 @@ class World(object):
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
 
-        self.front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=0.0, z=1.0, yaw=0.0, fov=5)
-        self.left_front_radar = FakeRadarSensor(self.player, self.hud, x=2.5, y=-0.8, z=1.0, yaw=-25.0)
-        self.left_back_radar = FakeRadarSensor(self.player, self.hud, x=-2.5, y=-0.8, z=1.0, yaw=-155.0)
+        self.front_radar = FakeRadarSensor(self.player, self.hud, x=2, y=0.0, z=1.0, yaw=0.0, fov=5)
+        self.left_front_radar = FakeRadarSensor(self.player, self.hud, x=2, y=-0.8, z=1.0, yaw=-25.0)
+        self.left_back_radar = FakeRadarSensor(self.player, self.hud, x=-3, y=-0.8, z=1.0, yaw=-155.0)
         '''
         # Radars are implemented but not used for high computing resources required
         self.front_radar = RadarSensor(self.player, self.hud, rr='20',

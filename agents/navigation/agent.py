@@ -25,6 +25,7 @@ class AgentState(Enum):
     BLOCKED_RED_LIGHT = 3
     PREPARE_LANE_CHANGING = 4
     LANE_CHANGING = 5
+    EMERGENCY_BRAKE = 6
 
 
 class Agent(object):

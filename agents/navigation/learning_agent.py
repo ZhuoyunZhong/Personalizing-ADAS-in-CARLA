@@ -185,9 +185,6 @@ class LearningAgent(Agent):
         self._hazard_detected = False
         if self._front_r and (self._front_r[1][0] < 20.0):
             self._hazard_detected = True
-            # Temp: Emergency
-            if self._front_r[1][0] < 5.0:
-                return self._local_planner.soft_stop()
         # update hazard existing time
         if self._hazard_detected:
             if self._blocked_time is None:
@@ -248,7 +245,13 @@ class LearningAgent(Agent):
                self._vehicle.get_location().y < 7.0:
                 self._state = AgentState.NAVIGATING
 
-        # Standard local planner behavior
+        # 6, Emergency Brake
+        emergency_distance = 5.0
+        if self._front_r and self._front_r[1][0] < emergency_distance:
+            self._state = AgentState.EMERGENCY_BRAKE
+
+
+        # Local Planner Behavior according to states
         if self._state == AgentState.NAVIGATING or self._state == AgentState.LANE_CHANGING:
             control = self._local_planner.run_step(debug=debug)
 
@@ -269,6 +272,11 @@ class LearningAgent(Agent):
             if ego_speed > 1:
                 desired_speed += 2*(front_dis/ego_speed - self._THW)
             control = self._local_planner.run_step(debug=debug, target_speed=desired_speed*3.6)
+
+        elif self._state == AgentState.EMERGENCY_BRAKE:
+            control = self._local_planner.soft_stop()
+            if self._front_r[1][0] >= emergency_distance:
+                self._state = AgentState.NAVIGATING
 
         elif self._state == AgentState.BLOCKED_RED_LIGHT:
             control = self._local_planner.empty_control(debug=debug)
