@@ -67,7 +67,7 @@ class LocalPlanner(object):
         
         # queue with tuples of (waypoint, RoadOption)
         self._waypoints_queue = deque(maxlen=20000)
-        self._buffer_size = 5
+        self._buffer_size = 20
         self.waypoint_buffer = deque(maxlen=self._buffer_size)
 
         # initializing controller
@@ -85,8 +85,6 @@ class LocalPlanner(object):
         # default params
         self._dt = 1.0 / 20.0      # 1/F
         self._target_speed = 30.0  # Km/h
-        self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
-        self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         args_lateral_dict = {
             'K_P': 1.95,
             'K_D': 0.01,
@@ -110,6 +108,8 @@ class LocalPlanner(object):
             if 'longitudinal_control_dict' in opt_dict:
                 args_longitudinal_dict = opt_dict['longitudinal_control_dict']
         
+        self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
+        self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         # Controller
         CONTROLLER_TYPE = args_lateral_dict['control_type']
         if CONTROLLER_TYPE == 'MPC':
@@ -208,7 +208,6 @@ class LocalPlanner(object):
             control.brake = 1.0
             control.hand_brake = False
             control.manual_gear_shift = False
-
             return control
 
         # Buffering the waypoints

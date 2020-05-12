@@ -38,7 +38,7 @@ class LearningAgent(Agent):
         # Global plannar
         self._proximity_threshold = 10.0  # meter
         self._state = AgentState.NAVIGATING
-        self._hop_resolution = 2.0
+        self._hop_resolution = 0.2
         self._path_seperation_hop = 2
         self._path_seperation_threshold = 0.5
         self._grp = None  # global route planar
@@ -285,7 +285,7 @@ class LearningAgent(Agent):
                 waypoint = self._local_planner.waypoint_buffer[-1][0]
                 ref_location = waypoint.transform.location
             
-            wait_dist = 2.0  # need some time to plan
+            wait_dist = 0.0  # need some time to plan
             ref = [ref_location.x + wait_dist, ref_location.y, ref_yaw]
 
             # Replace current plan with a lane change plan

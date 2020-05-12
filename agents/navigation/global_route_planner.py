@@ -174,6 +174,7 @@ class GlobalRoutePlanner(object):
         This method places zero cost links in the topology graph
         representing availability of lane changes.
         """
+        hop_resolution = self._dao.get_resolution()
         for segment in self._topology:
             left_found, right_found = False, False
 
@@ -191,11 +192,11 @@ class GlobalRoutePlanner(object):
                             # add this edge to graph
                             next_segment = self._localize(next_waypoint.transform.location)
                             if next_segment is not None:
-                                # length = 0
+                                # length = 5.0 / hop_resolution
                                 self._graph.add_edge(
                                     self._id_map[segment['entryxyz']], next_segment[0], entry_waypoint=segment['entry'],
                                     exit_waypoint=self._graph.edges[next_segment[0], next_segment[1]]['entry_waypoint'],
-                                    path=[], length=0, type=next_road_option, change_waypoint=waypoint)
+                                    path=[], length=5.0/hop_resolution, type=next_road_option, change_waypoint=waypoint)
                                 right_found = True
 
                     if bool(waypoint.lane_change & carla.LaneChange.Left) and not left_found:
@@ -208,11 +209,11 @@ class GlobalRoutePlanner(object):
                             # add this edge to graph
                             next_segment = self._localize(next_waypoint.transform.location)
                             if next_segment is not None:
-                                # length = 0
+                                # length = 2.0 / hop_resolution
                                 self._graph.add_edge(
                                     self._id_map[segment['entryxyz']], next_segment[0], entry_waypoint=segment['entry'],
                                     exit_waypoint=self._graph.edges[next_segment[0], next_segment[1]]['entry_waypoint'],
-                                    path=[], length=0, type=next_road_option, change_waypoint=waypoint)
+                                    path=[], length=5.0/hop_resolution, type=next_road_option, change_waypoint=waypoint)
                                 left_found = True
 
                 if left_found and right_found:

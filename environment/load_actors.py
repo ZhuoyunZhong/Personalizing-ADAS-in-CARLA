@@ -57,7 +57,7 @@ def spawn_surrounding_vehicles(world, scene):
         else:
             print('location for %s occupied' % vehicle.type_id)
 
-    pygame.time.wait(500)
+    pygame.time.wait(700)
     for vehicle in vehicle_list:
         vehicle.set_autopilot(True)
         print("%s set to Autopilot mode." % vehicle.type_id)
