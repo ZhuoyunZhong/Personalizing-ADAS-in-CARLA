@@ -208,6 +208,9 @@ def game_loop(args):
     pygame.font.init()
     world = None
 
+    if args.hardware:
+        from smv2_drive import DriveController
+
     try:
         # Connect to client
         client = carla.Client(args.host, args.port)
@@ -222,6 +225,33 @@ def game_loop(args):
         world = World(client.get_world(), hud, args.location, args.filter, args.agent, args.scene)
         if world.player is None:
             return
+
+        # Hardware
+        if args.hardware:
+            smdrive = DriveController("/dev/ttyUSB0", 1, False)
+
+            ##### Register Callbacks #####
+            # smdrive.logCallback = self._logCallback
+            # smdrive.errorCallback = self._errorCallback
+            # smdrive.readingCallback = self._readingCallback
+            # smdrive.connectedCallback = self._connectedCallback
+
+            # Connect and start
+            smdrive.connect()
+
+            print("WAITING TO CONNECT TO MOTOR......")
+            time.sleep(1)
+            # Expect Motor to be connected
+
+            # # turn motor to home
+            smdrive.setAddedConstantTorque(350)
+            self._goToAngle(0, 1000)
+
+            smdrive.setAddedConstantTorque(150)
+
+            smdrive.setZero()
+
+            time.sleep(1)
 
         # Keyboard controller set up
         controller = KeyboardControl(world, start_in_autopilot=True)
@@ -254,6 +284,14 @@ def game_loop(args):
                     learning_flag = False
 
             control = world.agent.run_step(debug=True)
+
+            if args.hardware:
+                angle = control.steer * 90
+
+                # Move motor to "angle" degrees
+                smdrive.setAbsoluteSetpoint(
+                int((angle/360)*10000), 1000, 3, 0.05)
+
             # Agent autopilot
             if world.autopilot_mode:
                 # control signal to vehicle        
@@ -286,6 +324,10 @@ def main():
                            help="select which agent to run")
     argparser.add_argument("-s", "--scene", type=str, choices=['0', '1', '2'], default='0',
                            help="select which scene to run")
+    
+    argparser.add_argument("--hardware", type=bool, default=False,
+                           help="Enable Steering wheel hardware")
+
     args = argparser.parse_args()
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
