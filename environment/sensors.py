@@ -121,7 +121,7 @@ class FakeRadarSensor(object):
 # Obstacle sensor (ultrasonic)
 class ObstacleSensor(object):
     def __init__(self, parent_actor, hud, debug=True, listen=True, 
-                 x=2.5, y=0.0, z=1.0, yaw=0.0, hit_radius='1.0', sensor_tick='0.5'):
+                 x=2.5, y=0.0, z=1.0, yaw=0.0, hit_radius='1.5', sensor_tick='0.3'):
         self._parent = parent_actor
         world = self._parent.get_world()
         obs_sensor_bp = world.get_blueprint_library().find('sensor.other.obstacle')

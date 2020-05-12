@@ -207,7 +207,7 @@ class LearningAgent(Agent):
             self._state = AgentState.BLOCKED_RED_LIGHT
             self._hazard_detected = True
         '''
-        #print(self._state)
+        print(self._state)
 
         # Finite State Machine
         # 1, Navigating
