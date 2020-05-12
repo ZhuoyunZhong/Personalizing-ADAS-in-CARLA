@@ -278,9 +278,10 @@ class LearningAgent(Agent):
 
         elif self._state == AgentState.EMERGENCY_BRAKE:
             control = self._local_planner.brake()
-            if self._front_r[1][0] >= emergency_distance and \
-                self._front_r[2][0] > emergency_front_speed:
-                self._state = AgentState.NAVIGATING
+            if self._front_r:
+                if self._front_r[1][0] >= emergency_distance and \
+                    self._front_r[2][0] > emergency_front_speed:
+                    self._state = AgentState.NAVIGATING
 
         elif self._state == AgentState.BLOCKED_RED_LIGHT:
             control = self._local_planner.empty_control(debug=debug)
