@@ -226,8 +226,32 @@ def game_loop(args):
         if world.player is None:
             return
 
+        # Hardware
         if args.hardware:
             smdrive = DriveController("/dev/ttyUSB0", 1, False)
+
+            ##### Register Callbacks #####
+            # smdrive.logCallback = self._logCallback
+            # smdrive.errorCallback = self._errorCallback
+            # smdrive.readingCallback = self._readingCallback
+            # smdrive.connectedCallback = self._connectedCallback
+
+            # Connect and start
+            smdrive.connect()
+
+            print("WAITING TO CONNECT TO MOTOR......")
+            time.sleep(1)
+            # Expect Motor to be connected
+
+            # # turn motor to home
+            smdrive.setAddedConstantTorque(350)
+            self._goToAngle(0, 1000)
+
+            smdrive.setAddedConstantTorque(150)
+
+            smdrive.setZero()
+
+            time.sleep(1)
 
         # Keyboard controller set up
         controller = KeyboardControl(world, start_in_autopilot=True)

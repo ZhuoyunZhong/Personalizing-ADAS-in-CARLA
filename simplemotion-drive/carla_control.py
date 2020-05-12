@@ -145,7 +145,9 @@ class MyController():
 
                 self._display.blit(text, textRect)
 
-            # finish stages logic
+
+            #
+            # finished stages logic
 
             if self._log_message is not None:
                 if self._log_message == "Opening SM bus failed":
@@ -179,7 +181,7 @@ class MyController():
 
         # Setup other settings for the steering wheel
         self._controller.setAddedConstantTorque(150)
-        self._controller.disableSetpointTracking(500, 0.001)
+        # self._controller.disableSetpointTracking(500, 0.001)
 
     def _runLoop(self):
 
