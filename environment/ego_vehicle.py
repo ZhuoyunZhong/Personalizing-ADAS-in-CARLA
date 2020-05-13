@@ -18,7 +18,7 @@ except IndexError:
 import carla
 import pygame
 
-from manual_control import KeyboardControl
+from manual_control import KeyboardControl, DualControl
 from load_actors import spawn_surrounding_vehicles
 from sensors import FakeRadarSensor, RadarSensor, CollisionSensor, GnssSensor, \
                     CameraSet, CameraManager
@@ -208,9 +208,6 @@ def game_loop(args):
     pygame.font.init()
     world = None
 
-    if args.hardware:
-        from smv2_drive import DriveController
-
     try:
         # Connect to client
         client = carla.Client(args.host, args.port)
@@ -227,7 +224,8 @@ def game_loop(args):
             return
 
         # Hardware
-        if args.hardware:
+        if args.hardware == '2':
+            from smv2_drive import DriveController
             smdrive = DriveController("/dev/ttyUSB0", 1, False)
 
             ##### Register Callbacks #####
@@ -254,7 +252,10 @@ def game_loop(args):
             time.sleep(1)
 
         # Keyboard controller set up
-        controller = KeyboardControl(world, start_in_autopilot=True)
+        if args.hardware == '1':
+            controller = DualControl(world, start_in_autopilot=True)
+        elif args.hardware == '0':
+            controller = KeyboardControl(world, start_in_autopilot=True)
 
         # Manually start the vehicle to avoid control delay
         world.player.apply_control(carla.VehicleControl(manual_gear_shift=True, gear=1))
@@ -285,7 +286,7 @@ def game_loop(args):
 
             control = world.agent.run_step(debug=True)
 
-            if args.hardware:
+            if args.hardware == '2':
                 angle = control.steer * 90
 
                 # Move motor to "angle" degrees
@@ -325,8 +326,8 @@ def main():
     argparser.add_argument("-s", "--scene", type=str, choices=['0', '1', '2'], default='0',
                            help="select which scene to run")
     
-    argparser.add_argument("--hardware", type=bool, default=False,
-                           help="Enable Steering wheel hardware")
+    argparser.add_argument("-hw", "--hardware", type=str, choices=['0', '1', '2'], default='0',
+                           help="Select Steering wheel hardware")
 
     args = argparser.parse_args()
     args.width, args.height = [int(x) for x in args.res.split('x')]
