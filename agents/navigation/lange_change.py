@@ -64,12 +64,11 @@ class SinLaneChange:
             GMM_sin = GMM()
             if GMM_sin.GMM_model is not None:
                 self._dt = GMM_sin.predict_value(GMM_v)[0][0]
-                if np.isnan(self._dt):
+                if np.isnan(self._dt) or self._dt < 0:
                     self._dt = param["dt"]
                     print("GMM model failed, send dt = 4")
                 else:
                     print("Predict dt: %s from GMM" % (self._dt))
-
         self._npts = int(20*self._dt)
 
     # Return lane change waypoints
