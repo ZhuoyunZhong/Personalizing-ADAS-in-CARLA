@@ -73,16 +73,15 @@ class FakeRadarSensor(object):
         if self.detected or not event.other_actor:
             return
         
-        # Event check
-        self.obstacle = event.other_actor
-        self.distance = event.distance
         # Only track other dynamic objects
-        if "vehicle" not in self.obstacle.type_id or self.obstacle.id == self._parent.id:
+        if "vehicle" not in event.other_actor.type_id or event.other_actor.id == self._parent.id:
             self.obstacle = None
             self.distance = None
             return
         
         self.detected = True
+        self.obstacle = event.other_actor
+        self.distance = event.distance
         
         # relative position
         veh_tran = self._parent.get_transform()
