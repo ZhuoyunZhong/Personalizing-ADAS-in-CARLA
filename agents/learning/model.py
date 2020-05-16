@@ -39,7 +39,7 @@ class Model:
         if not path.exists(self._model_path):
             # Default model
             model = {"safe_distance": {"THW": 2.0}, 
-                     "target_speed": 28.0,
+                     "target_speed": 7.778,
                      "poly_param": {"lon_dis": 30.0, "lat_dis": -3.5, "dt": 4.0,
                                     "lon_param": np.array([0.0, 7.0, 0.0, 0.3125, -0.1172, 0.0117]),
                                     "lat_param": np.array([0.0, 0.0, 0.0, -0.5469, 0.2051, -0.0205])},
@@ -60,7 +60,7 @@ class Model:
     def end_collect(self):
         self.update_target_speed()
         self.update_safe_distance()
-        self.update_sin_param()
+        self.update_sin_param(debug=True)
         self.update_poly_param()
         
         # Temporary
@@ -236,7 +236,7 @@ class Model:
             print("No poly parameters data")
 
 
-    def update_sin_param(self, debug=True):
+    def update_sin_param(self, debug=False):
         """
         Sinusoidal Method comes from:
         V. A. Butakov and P. Ioannou,
@@ -337,22 +337,36 @@ class Model:
         rel_speed = speed - front_speed
         
         # get speed while there is a vehicle ahead
-        index = (front_distance != 100) & (speed != 0) & (front_distance != 0)
+        index = (front_distance != 100) & (speed >= 3) & (front_distance !=0)
         # remove approaching state
-        current_index = 0
-        current_time = time_stamp[0]
+        current_index_acc = 0
+        current_index_dec = 0
+        current_time_acc = time_stamp[0]
+        current_time_dec = time_stamp[0]
         accelrating_flag = acceleration[0] > 0
+        decelrating_flag = acceleration[0] < 0
         for i in range(time_stamp.size):
-            if acceleration[i] > 0:
+            if acceleration[i] > 0.5:
                 if not accelrating_flag:
                     accelrating_flag = True
-                    current_time = time_stamp[i]
-                    current_index = i
+                    current_time_acc = time_stamp[i]
+                    current_index_acc = i
             else:
                 if accelrating_flag:
                     accelrating_flag = False
-                    if time_stamp[i] - current_time > 3.0:
-                        index[current_index:i] = False
+                    if time_stamp[i] - current_time_acc > 1.0:
+                        index[current_index_acc:i] = False
+
+            if acceleration[i] < -0.5:
+                if not decelrating_flag:
+                    decelrating_flag = True
+                    current_time_dec = time_stamp[i]
+                    current_index_dec = i
+            else:
+                if decelrating_flag:
+                    decelrating_flag = False
+                    if time_stamp[i] - current_time_dec > 1.0:
+                        index[current_index_dec:i] = False
 
         time_stamp = time_stamp[index]
         speed = speed[index]
@@ -371,8 +385,13 @@ class Model:
             TTCi = TTCi[steady_index]
 
             # get new value
-            THW_mean, THW_std = norm.fit(THW)
-            THW_covar = THW_std**2
+            gmm = GaussianMixture(n_components=3, covariance_type='diag')
+            result = gmm.fit(THW[:, np.newaxis])
+            weights, means, covars = result.weights_, result.means_, result.covariances_
+
+            # Select the gaussian distribution with the maximum mean
+            max_index = np.argmax(weights)
+            THW_mean, THW_covar = means[max_index][0], covars[max_index][0]
 
             if debug:
                 fig = plt.figure()
@@ -380,8 +399,13 @@ class Model:
                 ax1.hist(THW, bins=THW.size/3, ec='red', alpha=0.5, density=True)
                 THW = np.sort(THW)
                 x = np.linspace(THW[0], THW[-1], THW.size).reshape(-1,1)
-                y = norm.pdf(x, THW_mean, THW_std).ravel()
-                ax1.plot(x, y, c='red')
+                y1 = weights[0] * norm.pdf(x, means[0], np.sqrt(covars[0])).ravel()
+                y2 = weights[1] * norm.pdf(x, means[1], np.sqrt(covars[1])).ravel()
+                y3 = weights[2] * norm.pdf(x, means[2], np.sqrt(covars[2])).ravel()
+                ax1.plot(x, y1+y2+y3, c='black')
+                ax1.plot(x, y1, c='red')
+                ax1.plot(x, y2, c='green')
+                ax1.plot(x, y3, c='blue')
                 ax2 = fig.add_subplot(222)
                 ax2.hist(TTCi, bins=TTCi.size/3, ec='red', alpha=0.5)
                 ax3 = fig.add_subplot(212)
@@ -415,7 +439,7 @@ class Model:
                 target_THW = (s1*u2+s2*u1) / (s1+s2)
                 THW_covar = s1*s2 / (s1+s2)
 
-            self._model["target_speed"] = {"THW": target_THW}
+            self._model["safe_distance"] = {"THW": target_THW}
             print("Safe Distance Trained")
             print("New THW: %f"% target_THW)
         else:
