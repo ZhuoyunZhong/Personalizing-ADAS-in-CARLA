@@ -1,15 +1,22 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import carla
 
-# import os.path
-# import sys
-# sys.path.append(os.path.join(os.path.agents.learning(GMM.py)))
-
-import pickle
+import os
 from os import path
 from os.path import dirname, abspath
+import sys
+import glob
+try:
+    sys.path.append(glob.glob('../CARLA_Simulator/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+import carla
+
+import pickle
 
 from scipy.interpolate import splrep
 from scipy.stats import norm
@@ -208,6 +215,7 @@ class Model:
                 plt.ylabel('Lateral (m)')
                 plt.plot(x_after, y_after, color='g')
                 plt.scatter(x_v, y_v, marker='x', color='k', s=5)
+                plt.legend()
                 plt.show()
 
             # Save data
@@ -285,6 +293,8 @@ class Model:
                 plt.ylabel('Lateral (m)')
                 plt.plot(x_after, y_after, color='g')
                 plt.scatter(x_v, y_v, marker='x', color='k', s=5)
+
+                plt.legend()
                 plt.show()
 
             # Save data for GMM
@@ -406,14 +416,19 @@ class Model:
                 ax1.plot(x, y1, c='red')
                 ax1.plot(x, y2, c='green')
                 ax1.plot(x, y3, c='blue')
+                ax1.set_xlabel("THW 1/s")
+                ax1.set_ylabel("Density of probability")
                 ax2 = fig.add_subplot(222)
-                ax2.hist(TTCi, bins=TTCi.size/3, ec='red', alpha=0.5)
+                ax2.hist(TTCi, bins=TTCi.size/2, ec='red', alpha=0.5)
+                ax2.set_xlabel("TTCi 1/s")
+                ax2.set_ylabel("Density of probability")
                 ax3 = fig.add_subplot(212)
-                ax3.scatter(time_stamp, speed, c='r')
-                ax3.scatter(time_stamp, rel_speed, c='g')
-                ax3.scatter(time_stamp, acceleration, c='b')
-                ax3.scatter(time_stamp, front_distance, c='k')
+                ax3.scatter(time_stamp, speed, c='r', label='Velocity m/s')
+                ax3.scatter(time_stamp, rel_speed, c='g', label='Relative Velocity m/s')
+                ax3.scatter(time_stamp, front_distance, c='k', label='Leading Vehicle distance m')
+                ax3.set_xlabel("Time s")
                 
+                plt.legend()
                 plt.show()
             
             self.save_data(np.array([THW_mean, THW_covar]), "safe_distance_train_data.csv")
@@ -473,6 +488,7 @@ class Model:
             mean, covar = means[max_index][0], covars[max_index][0]
 
             if debug:
+                
                 plt.hist(stable_speed, bins = stable_speed.size, ec='red', alpha=0.5, density=True)
                 x = np.linspace(stable_speed[0], stable_speed[-1], stable_speed.size).reshape(-1,1)
                 y1 = weights[0] * norm.pdf(x, means[0], np.sqrt(covars[0])).ravel()
@@ -482,6 +498,10 @@ class Model:
                 plt.plot(x, y1, c='red')
                 plt.plot(x, y2, c='green')
                 plt.plot(x, y3, c='blue')
+                plt.xlabel("Velocity m/s")
+                plt.ylabel("Density of probability")
+
+                plt.legend()
                 plt.show()
 
             # get new value
