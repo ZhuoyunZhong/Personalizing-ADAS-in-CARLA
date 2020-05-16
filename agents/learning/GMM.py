@@ -227,7 +227,7 @@ if __name__ == "__main__":
             data.append([float(num[0]), float(num[1])])
     data = np.array(data)
 
-    gmm.train(data, Gaussian_set_num=6, iteration_t=30)
+    gmm.train(data, Gaussian_set_num=5, iteration_t=30)
     label_value = gmm.predict_label(data)
     data = np.array(data)
 
@@ -256,8 +256,18 @@ if __name__ == "__main__":
 
     plt.figure()
     for pos, covar, w in zip(gmm.GMM_model['mean'], gmm.GMM_model['covariance'], gmm.GMM_model['p']):
-        draw_ellipse(pos, covar, alpha=w)
+        draw_ellipse(pos, covar, alpha=w/2)
     plt.scatter(data[:, 0], data[:, 1], c=label_value)
-    plt.scatter(x, pred, c='r')
+    plt.xlabel("x")
+    plt.ylabel("y")
+    
+    plt.figure()
+    for pos, covar, w in zip(gmm.GMM_model['mean'], gmm.GMM_model['covariance'], gmm.GMM_model['p']):
+        draw_ellipse(pos, covar, alpha=w/2)
+    plt.scatter(x, pred, c='r', label='Prediction')
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
 
     plt.show()
+    
