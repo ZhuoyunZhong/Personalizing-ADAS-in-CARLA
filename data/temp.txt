@@ -1,2 +1,0 @@
-# Not a script
-# Just to keep data folder existing in github

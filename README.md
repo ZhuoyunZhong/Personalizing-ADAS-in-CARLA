@@ -4,12 +4,20 @@ This project aims to personalize Advanced Driving-assistance Systems ([ADAS](htt
 
 ## Demonstration
 
-![Demo](./demo/lane_change.gif)
-
-![Demo](./demo/vehicle_following.png)
-
-![Demo](./demo/lane_following.png)
-
+<p align = "center">
+    <img src = "./demo/lane_following.gif">
+    <br>
+    <em>Lane Following Case</em>
+    <br>
+    <img src = "./demo/vehicle_following.gif">
+    <br>
+    <em>Vehicle Following Case</em>
+    <br>
+    <img src = "./demo/lane_change.gif">
+    <br>
+    <em>Lane Changing Case </em> 
+    <br>
+</p>
 
 ## Test Platform
 
@@ -44,6 +52,8 @@ Carla
 
 `numpy`,  `scikit-learn`,  `casadi`,  `opencv` and `pygame` should be correctly installed.
 
+`jstest-gtk` is also needed if one would run Carla with a hardware steering wheel, a Logitech steering wheel for example.
+
 ## Run Instruction
 
 #### Performing Phase
@@ -77,6 +87,14 @@ Carla
    To perform personalized ***lane changing***, generate the second scene where multiple vehicles are surrounding the ego vehicle:
 
    `python ego_vehicle.py -s 2` 
+   
+3. If one would like to run it with hardware setup, he could run it by:
+
+   `python ego_vehicle.py -hw 1`
+
+   which will use both keyboard, steering wheel and pedal control as vehicle inputs.
+
+   
 
 #### Learning Phase
 
@@ -87,3 +105,50 @@ To start or end the learning process, press `l` in manual control mode. Noted th
 After learning, one could regenerate the scene by pressing `Backspace` and turn autopilot mode on to see the performance of the vehicle.
 
 It is advisable to personalize ***lane following*** in front in scene 0, to clone ***vehicle following*** behavior in scene 1, and to teach the model ***lane changing*** in scene 2.
+
+## Personalization
+
+Some sets of data of 3 different drivers are stored in **data/Driver_Data**.
+
+#### **Lane Following**
+
+personalized parameter: **target_speed**
+
+method: **GMM**
+
+<p align = "center">
+    <img src = "./demo/target_speed_one.jpg">
+    <br>
+    <em>Driver 1 Set 1 Target Speed Histogram Plot & V-t Plot</em>
+    <br>
+    <img src = "./demo/target_speed_all.png">
+    <br>
+    <em>All sets of 3 drivers' data</em>
+</p>
+
+#### Vehicle Following**
+
+personalized parameter: **Time Headway (THW)**
+
+method: **GMM**
+
+<p align = "center">
+    <img src = "./demo/safe_distance_one.png">
+    <br>
+    <em>Driver 1 Set 1 THW, TTCi</em>
+    <img src = "./demo/safe_distance_all.png">
+    <br>
+    <em>All sets of 3 drivers' data</em>
+</p>
+
+#### **Lane Changing**
+
+personalized parameter: **Lateral Time, Longitudinal Velocity**
+
+method: **GMM + COS Trajectory**
+
+<p align = "center">
+    <img src = "./demo/lane_change_all.png">
+    <br>
+    <em>3 drivers' trained models perform in standard case [10m/s, -3.5m, 15m, -12m]</em>
+</p>
