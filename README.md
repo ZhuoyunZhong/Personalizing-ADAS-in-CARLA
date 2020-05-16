@@ -110,7 +110,7 @@ It is advisable to personalize ***lane following*** in front in scene 0, to clon
 
 Some sets of data of 3 different drivers are stored in **data/Driver_Data**.
 
-#### **Lane Following**
+#### Lane Following
 
 personalized parameter: **target_speed**
 
@@ -126,7 +126,7 @@ method: **GMM**
     <em>All sets of 3 drivers' data</em>
 </p>
 
-#### Vehicle Following**
+#### Vehicle Following
 
 personalized parameter: **Time Headway (THW)**
 
@@ -141,7 +141,7 @@ method: **GMM**
     <em>All sets of 3 drivers' data</em>
 </p>
 
-#### **Lane Changing**
+#### Lane Changing
 
 personalized parameter: **Lateral Time, Longitudinal Velocity**
 
@@ -152,3 +152,4 @@ method: **GMM + COS Trajectory**
     <br>
     <em>3 drivers' trained models perform in standard case [10m/s, -3.5m, 15m, -12m]</em>
 </p>
+
